@@ -184,10 +184,11 @@ const Connection = ({
   const lineRef = useRef<any>(null);
   const glowRef = useRef<any>(null);
   const isTree = edgeKind === 'contains';
-  const coreW = isTree ? 0.55 : 1.2;
-  const glowW = isTree ? 1.2 : 4;
-  const coreOp = isTree ? 0.45 : 0.8;
-  const glowOp = isTree ? 0.08 : 0.15;
+  // Enhanced Edge Visibility
+  const coreW = isTree ? 1.2 : 2.5;
+  const glowW = isTree ? 2.5 : 6;
+  const coreOp = isTree ? 0.7 : 1.0;
+  const glowOp = isTree ? 0.25 : 0.5;
 
   useFrame(() => {
     if (lineRef.current) lineRef.current.dashOffset -= 0.01;
