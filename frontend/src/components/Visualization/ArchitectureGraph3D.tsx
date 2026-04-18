@@ -185,11 +185,6 @@ function Scene({ nodes, edges, selectedId, onSelect }: { nodes: NodeData[]; edge
   
   // Smooth Camera Zoom Logic
   useFrame((state, delta) => {
-    // Continuous rotation for "Scanning" feel
-    if (!selectedId && groupRef.current) {
-      groupRef.current.rotation.y += 0.002;
-    }
-
     if (selectedId) {
       const targetNode = nodes.find(n => n.id === selectedId);
       if (targetNode && controls) {
