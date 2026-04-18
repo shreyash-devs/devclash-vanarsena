@@ -44,11 +44,11 @@ export default function RepoOnboarding() {
              <p className="text-white/50 text-lg">Enter a GitHub URL to begin the architectural analysis.</p>
           </div>
 
-          <div className="bg-white/5 backdrop-blur-3xl border border-white/10 rounded-3xl p-8 shadow-2xl relative overflow-hidden">
-             {/* Glowing gradient subtle overlay */}
-             <div className="absolute -top-24 -left-24 w-48 h-48 bg-accent/10 rounded-full blur-[100px]" />
+          <div className="bg-indigo-950/20 backdrop-blur-3xl border border-indigo-500/20 rounded-3xl p-8 shadow-2xl relative overflow-hidden">
+             {/* Nebula Sheen Overlay */}
+             <div className="absolute inset-0 bg-gradient-to-br from-accent/5 via-transparent to-transparent pointer-events-none" />
              
-             <div className="flex flex-col gap-5">
+             <div className="flex flex-col gap-5 relative z-10">
                 {/* URL Input */}
                 <div className="relative group">
                    <div className="absolute inset-y-0 left-5 flex items-center pointer-events-none text-white/30 group-focus-within:text-accent transition-colors">

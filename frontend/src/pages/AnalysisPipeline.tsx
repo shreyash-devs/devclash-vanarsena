@@ -100,8 +100,11 @@ export default function AnalysisPipeline() {
         </div>
 
         {/* Right Panel - The Dashboard */}
-        <div className="w-[400px] h-full bg-black/40 backdrop-blur-2xl border-l border-white/5 flex flex-col pt-8 font-sans shrink-0 z-20">
-          <div className="px-8 mb-10">
+        <div className="w-[400px] h-full bg-indigo-950/20 backdrop-blur-3xl border-l border-indigo-500/20 flex flex-col pt-8 font-sans shrink-0 z-20 relative overflow-hidden">
+          {/* Nebula Sheen Overlay */}
+          <div className="absolute inset-0 bg-gradient-to-br from-accent/5 via-transparent to-transparent pointer-events-none" />
+          
+          <div className="px-8 mb-10 relative z-10">
             <h2 className="text-xl font-bold text-white mb-2">Analysis Engine</h2>
             <p className="text-xs text-white/40 font-medium tracking-tight">Processing architectural patterns and dependency maps.</p>
           </div>

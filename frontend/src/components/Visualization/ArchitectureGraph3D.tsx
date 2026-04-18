@@ -216,6 +216,7 @@ function Scene({ nodes, edges, selectedId, onSelect }: { nodes: NodeData[]; edge
       
       <ambientLight intensity={0.1} />
       <pointLight position={[10, 10, 10]} intensity={2} />
+      <pointLight position={[-10, -5, -5]} intensity={1.5} color="#6366f1" />
       
       <group ref={groupRef}>
         <Particles />
@@ -243,11 +244,11 @@ function Scene({ nodes, edges, selectedId, onSelect }: { nodes: NodeData[]; edge
         ))}
       </group>
 
-      <EffectComposer disableNormalPass>
+      <EffectComposer>
         <Bloom 
-          luminanceThreshold={1.1} 
+          luminanceThreshold={1} 
           mipmapBlur 
-          intensity={1.5} 
+          intensity={1.2} 
           radius={0.4}
         />
       </EffectComposer>
