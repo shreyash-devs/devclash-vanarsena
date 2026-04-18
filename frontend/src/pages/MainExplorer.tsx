@@ -6,17 +6,31 @@ import { useStore } from '../store/useStore';
 import ArchitectureGraph3D from '../components/Visualization/ArchitectureGraph3D';
 
 const initialNodes3D: any[] = [
-  { id: '1', label: 'applications.py', role: 'entry', position: [0, 2, 0] },
-  { id: '2', label: 'routing.py', role: 'core', position: [-2, 0, 1] },
-  { id: '3', label: 'dependencies/', role: 'integration', position: [2, 0, -1] },
-  { id: '4', label: 'utils.py', role: 'util', position: [0, -2, 0] },
+  { id: '1', label: 'main.py', role: 'entry', position: [0, 3, 0] },
+  { id: '2', label: 'api/router.py', role: 'core', position: [2, 1.5, 0] },
+  { id: '3', label: 'core/security.py', role: 'core', position: [-2, 1.5, 0] },
+  { id: '4', label: 'db/session.py', role: 'core', position: [0, -1, 0] },
+  { id: '5', label: 'models/user.py', role: 'core', position: [2, -3, 1] },
+  { id: '6', label: 'models/item.py', role: 'core', position: [3, -3, -1] },
+  { id: '7', label: 'crud/user.py', role: 'util', position: [4, -1, 2] },
+  { id: '8', label: 'crud/item.py', role: 'util', position: [5, -1, -2] },
+  { id: '9', label: 'schemas/user.py', role: 'util', position: [-3, -3, 1] },
+  { id: '10', label: 'schemas/item.py', role: 'util', position: [-4, -3, -1] },
+  { id: '11', label: 'core/config.py', role: 'util', position: [-4, 1.5, 2] },
+  { id: '12', label: 'utils/logger.py', role: 'util', position: [-5, 0, -3] },
+  { id: '13', label: 'tests/test_api.py', role: 'util', position: [0, 5, -2] },
 ];
 
 const initialEdges3D = [
   { id: 'e1-2', source: '1', target: '2' },
   { id: 'e1-3', source: '1', target: '3' },
-  { id: 'e2-4', source: '2', target: '4' },
+  { id: 'e2-5', source: '2', target: '5' },
+  { id: 'e2-6', source: '2', target: '6' },
   { id: 'e3-4', source: '3', target: '4' },
+  { id: 'e4-5', source: '4', target: '5' },
+  { id: 'e4-6', source: '4', target: '6' },
+  { id: 'e5-7', source: '5', target: '7' },
+  { id: 'e6-8', source: '6', target: '8' },
 ];
 
 export default function MainExplorer() {
@@ -55,9 +69,12 @@ export default function MainExplorer() {
       </div>
       
       {[
-        { id: '1', name: 'applications.py', role: 'Entry', color: 'indigo' },
-        { id: '2', name: 'routing.py', role: 'Core', color: 'blue' },
-        { id: '4', name: 'utils.py', role: 'Util', color: 'gray' },
+        { id: '1', name: 'main.py', role: 'Entry', color: 'indigo' },
+        { id: '2', name: 'api/router.py', role: 'Core', color: 'blue' },
+        { id: '3', name: 'core/security.py', role: 'Core', color: 'blue' },
+        { id: '4', name: 'db/session.py', role: 'Core', color: 'blue' },
+        { id: '11', name: 'core/config.py', role: 'Util', color: 'gray' },
+        { id: '12', name: 'utils/logger.py', role: 'Util', color: 'gray' },
       ].map((file) => (
         <div 
           key={file.id}
@@ -66,9 +83,9 @@ export default function MainExplorer() {
         >
           <div className="flex items-center text-white/70 group-hover:text-white transition-colors">
             <FileCode2 size={16} className="mr-2 opacity-50 group-hover:opacity-100" />
-            <span>{file.name}</span>
+            <span className="truncate max-w-[120px]">{file.name}</span>
           </div>
-          <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-[4px] border uppercase tracking-wider
+          <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded-[4px] border uppercase tracking-wider
             ${file.color === 'indigo' ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20' : ''}
             ${file.color === 'blue' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' : ''}
             ${file.color === 'gray' ? 'bg-white/5 text-white/40 border-white/10' : ''}
@@ -81,7 +98,12 @@ export default function MainExplorer() {
       <div className="flex items-center px-4 pl-9 py-1.5 hover:bg-white/5 cursor-pointer text-white/40 group">
         <ChevronRight size={14} className="mr-2" />
         <Folder size={16} className="mr-2 opacity-50" />
-        <span className="font-medium">dependencies</span>
+        <span className="font-medium">models</span>
+      </div>
+      <div className="flex items-center px-4 pl-9 py-1.5 hover:bg-white/5 cursor-pointer text-white/40 group">
+        <ChevronRight size={14} className="mr-2" />
+        <Folder size={16} className="mr-2 opacity-50" />
+        <span className="font-medium">schemas</span>
       </div>
     </div>
   );

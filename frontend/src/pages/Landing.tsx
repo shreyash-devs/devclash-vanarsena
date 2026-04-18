@@ -8,8 +8,8 @@ export default function Landing() {
       <nav className="fixed top-0 w-full border-b border-border bg-background/80 backdrop-blur-md z-50 flex items-center justify-between px-6 py-4">
         <div className="flex items-center gap-2">
           <Terminal size={20} className="text-accent" />
-          <span className="font-semibold tracking-wide text-accent">Repository Navigator</span>
-        </div>
+          <span className="font-bold tracking-tighter text-accent text-xl">VANARSENA</span>
+</div>
         <div className="flex items-center gap-6">
           <a href="#" className="text-sm font-medium hover:text-accent transition-colors duration-150">LOGIN</a>
           <div className="px-2 py-1 rounded bg-surface border border-border text-xs font-mono text-text-secondary">
@@ -29,8 +29,8 @@ export default function Landing() {
         </p>
         <div className="mt-10 flex items-center gap-4">
           <Link 
-            to="/pipeline" 
-            className="px-6 py-3 bg-accent text-white rounded font-medium hover:bg-accent/90 transition-colors duration-150"
+            to="/onboarding" 
+            className="px-6 py-3 bg-accent text-white rounded font-medium hover:bg-accent/90 transition-colors duration-150 shadow-[0_4px_20px_rgba(99,102,241,0.3)]"
           >
             Get Started for Free
           </Link>
@@ -95,8 +95,8 @@ export default function Landing() {
       <section className="py-32 px-6 text-center border-t border-border">
         <h2 className="text-4xl font-bold mb-8">Ready to audit your architecture?</h2>
         <Link 
-          to="/pipeline" 
-          className="px-8 py-4 bg-accent text-white rounded font-medium text-lg hover:bg-accent/90 transition-colors duration-150"
+          to="/onboarding" 
+          className="px-8 py-4 bg-accent text-white rounded font-medium text-lg hover:bg-accent/90 transition-colors duration-150 shadow-[0_4px_25px_rgba(99,102,241,0.4)]"
         >
           Get Started for Free
         </Link>
