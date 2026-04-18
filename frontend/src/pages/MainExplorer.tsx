@@ -130,7 +130,7 @@ export default function MainExplorer() {
           <ChevronRight size={14} className="mr-3 opacity-40 group-hover:opacity-100" />
         </motion.div>
         <FolderOpen size={18} className="text-accent mr-3 shadow-[0_0_15px_rgba(99,102,241,0.4)]" />
-        <span className="font-bold tracking-tight text-[15px]">VANARSENA</span>
+        <span className="font-bold tracking-tight text-[15px]">RepoSensei</span>
       </div>
 
       <AnimatePresence initial={false}>
