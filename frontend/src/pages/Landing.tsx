@@ -4,8 +4,8 @@ import {
   Code2, Terminal, Cpu, Activity, Globe, Sparkles
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import InteractiveBackground from '../components/Visualization/InteractiveBackground';
+import { motion, AnimatePresence } from 'framer-motion';
+import CinematicVideoBackground from '../components/Visualization/CinematicVideoBackground';
 
 export default function Landing() {
 
@@ -18,11 +18,11 @@ export default function Landing() {
   };
 
   const itemVariants = {
-    hidden: { y: 20, opacity: 0 },
+    hidden: { opacity: 0, y: 20 },
     visible: {
-      y: 0,
       opacity: 1,
-      transition: { duration: 0.8, ease: [0.23, 1, 0.32, 1] as any }
+      y: 0,
+      transition: { duration: 0.8, ease: [0.23, 1, 0.32, 1] }
     }
   };
 
@@ -30,11 +30,11 @@ export default function Landing() {
     <div className="relative min-h-screen w-full text-white bg-black selection:bg-accent/40 overflow-x-hidden"
       style={{ fontFamily: "'Google Sans', 'Inter', sans-serif" }}
     >
-      <InteractiveBackground />
+      <CinematicVideoBackground />
 
       {/* Structural Dot Grid */}
       <div
-        className="fixed inset-0 pointer-events-none opacity-[0.06] z-0"
+        className="fixed inset-0 pointer-events-none opacity-[0.06] z-10"
         style={{
           backgroundImage: 'radial-gradient(circle, #ffffff 1px, transparent 1px)',
           backgroundSize: '48px 48px'
@@ -63,83 +63,7 @@ export default function Landing() {
       </nav>
 
       {/* ═══════════════ HERO SECTION ═══════════════ */}
-      <section className="relative pt-56 pb-40 px-6 flex flex-col items-center text-center z-10 overflow-hidden">
-
-        {/* ═══ STITCH WAVES — Rising from Bottom ═══ */}
-        <div className="absolute inset-0 pointer-events-none select-none overflow-hidden">
-
-          {/* LEFT WAVE HILL — Blue/Indigo rising from bottom-left */}
-          <motion.div
-            animate={{ y: [0, -50, 0], scaleX: [1, 1.05, 1] }}
-            transition={{ duration: 16, repeat: Infinity, ease: 'easeInOut' }}
-            className="absolute"
-            style={{
-              bottom: '-40%',
-              left: '-10%',
-              width: '70%',
-              height: '85%',
-              background: 'radial-gradient(ellipse 80% 60% at 40% 100%, #2563eb 0%, #4f46e5 35%, #6d28d9 60%, transparent 80%)',
-              filter: 'blur(40px)',
-              opacity: 0.75,
-            }}
-          />
-
-          {/* LEFT WAVE — Cyan shimmer layer */}
-          <motion.div
-            animate={{ y: [0, -30, 0], scaleX: [1, 1.03, 1] }}
-            transition={{ duration: 20, repeat: Infinity, ease: 'easeInOut', delay: 2 }}
-            className="absolute"
-            style={{
-              bottom: '-35%',
-              left: '-5%',
-              width: '45%',
-              height: '70%',
-              background: 'radial-gradient(ellipse 70% 60% at 50% 100%, #0891b2 0%, #2563eb 45%, transparent 75%)',
-              filter: 'blur(30px)',
-              opacity: 0.4,
-            }}
-          />
-
-          {/* RIGHT WAVE HILL — Purple/Violet rising from bottom-right */}
-          <motion.div
-            animate={{ y: [0, -50, 0], scaleX: [1, 1.05, 1] }}
-            transition={{ duration: 18, repeat: Infinity, ease: 'easeInOut', delay: 1 }}
-            className="absolute"
-            style={{
-              bottom: '-40%',
-              right: '-10%',
-              width: '70%',
-              height: '85%',
-              background: 'radial-gradient(ellipse 80% 60% at 60% 100%, #7c3aed 0%, #a855f7 35%, #9333ea 60%, transparent 80%)',
-              filter: 'blur(40px)',
-              opacity: 0.75,
-            }}
-          />
-
-          {/* RIGHT WAVE — Magenta shimmer layer */}
-          <motion.div
-            animate={{ y: [0, -35, 0], scaleX: [1, 1.04, 1] }}
-            transition={{ duration: 14, repeat: Infinity, ease: 'easeInOut', delay: 3 }}
-            className="absolute"
-            style={{
-              bottom: '-35%',
-              right: '-5%',
-              width: '45%',
-              height: '70%',
-              background: 'radial-gradient(ellipse 70% 60% at 50% 100%, #a855f7 0%, #c026d3 45%, transparent 75%)',
-              filter: 'blur(28px)',
-              opacity: 0.38,
-            }}
-          />
-
-          {/* CENTER TOP VIGNETTE — keeps headline crisp */}
-          <div
-            className="absolute inset-0"
-            style={{
-              background: 'radial-gradient(ellipse 80% 50% at 50% 20%, rgba(1,1,3,0.95) 0%, rgba(1,1,3,0.6) 60%, transparent 100%)',
-            }}
-          />
-        </div>
+      <section className="relative pt-56 pb-48 px-6 flex flex-col items-center text-center z-20 overflow-hidden">
         <motion.div
           initial={{ opacity: 0, y: 40 }}
           animate={{ opacity: 1, y: 0 }}
@@ -149,17 +73,17 @@ export default function Landing() {
           {/* Status Pill */}
           <div className="inline-flex items-center gap-3 px-5 py-2.5 bg-white/5 border border-white/10 rounded-full mb-12">
             <div className="w-2 h-2 rounded-full bg-accent animate-pulse shadow-[0_0_10px_#6366f1]" />
-            <span className="text-[10px] font-black tracking-[0.25em] text-white/40 uppercase">Neural Synthesis Engine v3.0</span>
+            <span className="text-[10px] font-black tracking-[0.25em] text-white/40 uppercase">Nebula Protocol Active</span>
           </div>
 
-          <h1 className="text-6xl md:text-[9rem] font-bold tracking-tight mb-10 leading-[0.85]">
+          <h1 className="text-6xl md:text-[9.5rem] font-bold tracking-tight mb-10 leading-[0.85]">
             Architect your<br />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-accent to-cyan-400">
               understanding
             </span>
           </h1>
 
-          <p className="text-white/30 text-xl md:text-2xl max-w-3xl mx-auto font-medium tracking-tight mb-20 leading-relaxed">
+          <p className="text-white/40 text-xl md:text-2xl max-w-3xl mx-auto font-medium tracking-tight mb-20 leading-relaxed">
             Turn complex codebases into intuitive interactive maps. Visualize architecture, identify bottlenecks, and simplify legacy codebases.
           </p>
 
