@@ -29,7 +29,7 @@ export default function Landing() {
         </p>
         <div className="mt-10 flex items-center gap-4">
           <Link 
-            to="/pipeline" 
+            to="/input" 
             className="px-6 py-3 bg-accent text-white rounded font-medium hover:bg-accent/90 transition-colors duration-150"
           >
             Get Started for Free
