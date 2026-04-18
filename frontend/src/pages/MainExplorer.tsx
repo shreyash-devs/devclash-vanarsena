@@ -1,37 +1,13 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Folder, FileCode2, ChevronDown, ChevronRight, Search, Sparkles, FolderOpen, ArrowUpRight, ArrowDownLeft, PenLine, Terminal, ArrowLeft } from 'lucide-react';
+import { Folder, FileCode2, ChevronRight, Search, Sparkles, FolderOpen, ArrowUpRight, PenLine, Terminal } from 'lucide-react';
 import IDELayout from '../components/IDE/IDELayout';
 import { useStore } from '../store/useStore';
 import ArchitectureGraph3D from '../components/Visualization/ArchitectureGraph3D';
+import { API_BASE } from '../lib/api';
 
-const initialNodes3D: any[] = [
-  { id: '1', label: 'main.py', role: 'entry', position: [0, 3, 0] },
-  { id: '2', label: 'api/router.py', role: 'core', position: [2, 1.5, 0] },
-  { id: '3', label: 'core/security.py', role: 'core', position: [-2, 1.5, 0] },
-  { id: '4', label: 'db/session.py', role: 'core', position: [0, -1, 0] },
-  { id: '5', label: 'models/user.py', role: 'core', position: [2, -3, 1] },
-  { id: '6', label: 'models/item.py', role: 'core', position: [3, -3, -1] },
-  { id: '7', label: 'crud/user.py', role: 'util', position: [4, -1, 2] },
-  { id: '8', label: 'crud/item.py', role: 'util', position: [5, -1, -2] },
-  { id: '9', label: 'schemas/user.py', role: 'util', position: [-3, -3, 1] },
-  { id: '10', label: 'schemas/item.py', role: 'util', position: [-4, -3, -1] },
-  { id: '11', label: 'core/config.py', role: 'util', position: [-4, 1.5, 2] },
-  { id: '12', label: 'utils/logger.py', role: 'util', position: [-5, 0, -3] },
-  { id: '13', label: 'tests/test_api.py', role: 'util', position: [0, 5, -2] },
-];
-
-const initialEdges3D = [
-  { id: 'e1-2', source: '1', target: '2' },
-  { id: 'e1-3', source: '1', target: '3' },
-  { id: 'e2-5', source: '2', target: '5' },
-  { id: 'e2-6', source: '2', target: '6' },
-  { id: 'e3-4', source: '3', target: '4' },
-  { id: 'e4-5', source: '4', target: '5' },
-  { id: 'e4-6', source: '4', target: '6' },
-  { id: 'e5-7', source: '5', target: '7' },
-  { id: 'e6-8', source: '6', target: '8' },
-];
+const initialNodes3D: any[] = [];
+const initialEdges3D: any[] = [];
 
 const FileItem = ({ file, selectedId, onSelect }: { file: any, selectedId: string | null, onSelect: (id: string | null) => void }) => (
   <div 
@@ -63,10 +39,61 @@ const FileItem = ({ file, selectedId, onSelect }: { file: any, selectedId: strin
 );
 
 export default function MainExplorer() {
-  const { selectedNodeId, setSelectedNodeId } = useStore();
-  const [nodes] = useState(initialNodes3D);
-  const [edges] = useState(initialEdges3D);
-  const [expandedFolders, setExpandedFolders] = useState<string[]>(['fastapi', 'api']);
+  const { selectedNodeId, setSelectedNodeId, repoId } = useStore();
+  const [nodes, setNodes] = useState<any[]>(initialNodes3D);
+  const [edges, setEdges] = useState<any[]>(initialEdges3D);
+  const [loadError, setLoadError] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Fetch live graph data from Neo4j with retries.
+  // Neo4j writes may complete slightly after navigation to this page,
+  // so we poll up to 10 times before declaring failure.
+  useEffect(() => {
+    if (!repoId) return;
+    setLoadError(false);
+    setIsLoading(true);
+
+    let attempts = 0;
+    const MAX_ATTEMPTS = 10;
+    const INTERVAL_MS = 2000;
+
+    const tryFetch = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/graph/${repoId}`);
+        const data = await res.json();
+        if (data && Array.isArray(data.nodes) && data.nodes.length > 0) {
+          setNodes(data.nodes);
+          setEdges(data.edges || []);
+          setLoadError(false);
+          setIsLoading(false);
+          return true; // success
+        }
+      } catch (err) {
+        console.error(`[MainExplorer] graph fetch attempt ${attempts + 1} failed:`, err);
+      }
+      return false; // not ready yet
+    };
+
+    const poll = setInterval(async () => {
+      attempts++;
+      const success = await tryFetch();
+      if (success || attempts >= MAX_ATTEMPTS) {
+        clearInterval(poll);
+        if (!success) {
+          setLoadError(true);
+          setIsLoading(false);
+        }
+      }
+    }, INTERVAL_MS);
+
+    // Run immediately on mount too, don't wait for first interval
+    tryFetch().then(success => {
+      if (success) clearInterval(poll);
+    });
+
+    return () => clearInterval(poll);
+  }, [repoId]);
+  const [expandedFolders, setExpandedFolders] = useState<string[]>(['root']);
   const [activeInfoTab, setActiveInfoTab] = useState<'details' | 'code' | 'chat'>('details');
 
   const toggleFolder = (folder: string) => {
@@ -75,31 +102,33 @@ export default function MainExplorer() {
     );
   };
 
-  const filesByFolder = {
-    'fastapi': [
-      { id: '1', name: 'main.py', role: 'Entry', color: 'indigo' },
-      { id: '11', name: 'core/config.py', role: 'Util', color: 'gray' },
-      { id: '12', name: 'utils/logger.py', role: 'Util', color: 'gray' },
-    ],
-    'api': [
-       { id: '2', name: 'router.py', role: 'Core', color: 'blue' },
-       { id: '3', name: 'security.py', role: 'Core', color: 'blue' },
-    ],
-    'models': [
-       { id: '5', name: 'user.py', role: 'Core', color: 'blue' },
-       { id: '6', name: 'item.py', role: 'Core', color: 'blue' },
-    ],
-    'db': [
-       { id: '4', name: 'session.py', role: 'Core', color: 'blue' },
-    ]
-  };
+  // Dynamically group files
+  const filesByFolder: Record<string, any[]> = { 'root': [] };
+  nodes.forEach(node => {
+     if (node.type === 'dir') return;
+     const relativePath = (node.path || (node.id.includes(':') ? node.id.split(':').slice(1).join(':') : node.id)) as string;
+     const parts = relativePath.split('/');
+     const folderName = parts.length > 1 ? parts[0] : 'root';
+     if (!filesByFolder[folderName]) filesByFolder[folderName] = [];
+     filesByFolder[folderName].push({
+        id: node.id,
+        name: relativePath,
+        role: node.role,
+        color: node.role === 'Entry' ? 'indigo' : node.role === 'Core' ? 'blue' : 'gray'
+     });
+  });
+
+  const rootFiles = filesByFolder['root'] || [];
+  const subFolders = Object.keys(filesByFolder).filter(k => k !== 'root').map(k => ({
+     id: k, name: k, files: filesByFolder[k]
+  }));
 
   const topbarCenter = (
     <div className="flex items-center gap-2 text-sm text-text-secondary">
       <FolderOpen size={16} className="text-accent" />
-      <span className="font-bold text-white/90">fastapi</span>
+      <span className="font-bold text-white/90">repository</span>
       <span className="opacity-20">/</span>
-      <span className="text-white/40">repository</span>
+      <span className="text-white/40">workspace</span>
     </div>
   );
 
@@ -121,20 +150,20 @@ export default function MainExplorer() {
       {/* Root Folder */}
       <div 
         className="flex items-center px-6 py-3 hover:bg-white/5 cursor-pointer text-white group transition-all"
-        onClick={() => toggleFolder('fastapi')}
+        onClick={() => toggleFolder('root')}
       >
         <motion.div
-          animate={{ rotate: expandedFolders.includes('fastapi') ? 90 : 0 }}
+          animate={{ rotate: expandedFolders.includes('root') ? 90 : 0 }}
           transition={{ duration: 0.2 }}
         >
           <ChevronRight size={14} className="mr-3 opacity-40 group-hover:opacity-100" />
         </motion.div>
         <FolderOpen size={18} className="text-accent mr-3 shadow-[0_0_15px_rgba(99,102,241,0.4)]" />
-        <span className="font-bold tracking-tight text-[15px]">VANARSENA</span>
+        <span className="font-bold tracking-tight text-[15px]">WORKSPACE</span>
       </div>
 
       <AnimatePresence initial={false}>
-        {expandedFolders.includes('fastapi') && (
+        {expandedFolders.includes('root') && (
           <motion.div
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
@@ -142,16 +171,12 @@ export default function MainExplorer() {
             className="overflow-hidden"
           >
             {/* Direct Files under root */}
-            {filesByFolder['fastapi'].map((file) => (
+            {rootFiles.map((file) => (
                <FileItem key={file.id} file={file} selectedId={selectedNodeId} onSelect={setSelectedNodeId} />
             ))}
 
             {/* Sub-Folders */}
-            {[
-              { id: 'api', name: 'api', files: filesByFolder['api'] },
-              { id: 'models', name: 'models', files: filesByFolder['models'] },
-              { id: 'db', name: 'db', files: filesByFolder['db'] },
-            ].map((folder) => (
+            {subFolders.map((folder) => (
               <div key={folder.id} className="flex flex-col">
                 <div 
                   className={`flex items-center px-6 py-2.5 hover:bg-white/5 cursor-pointer transition-all pl-10 group
@@ -191,9 +216,26 @@ export default function MainExplorer() {
     </div>
   );
 
+  const activeNode = nodes.find(n => n.id === selectedNodeId);
+  const couplingCount = (activeNode?.in_degree || 0) + (activeNode?.out_degree || 0);
+  const complexityGrade = couplingCount >= 12 ? "A" : couplingCount >= 7 ? "B" : couplingCount >= 4 ? "C" : "D";
+  const ripplePercent = Math.min(100, Math.round((activeNode?.impact_score || 0) * 100));
+
   return (
     <IDELayout topbarCenter={topbarCenter} topbarRight={topbarRight} sidebarContent={sidebarContent}>
       <div className="w-full h-full relative overflow-hidden">
+        {isLoading && nodes.length === 0 && (
+          <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20 px-4 py-2 rounded-xl border border-indigo-500/30 bg-indigo-950/60 text-indigo-300 text-sm flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-indigo-400 animate-ping" />
+            Connecting to graph database...
+          </div>
+        )}
+        {!isLoading && loadError && (
+          <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20 px-4 py-2 rounded-xl border border-red-500/30 bg-red-950/60 text-red-300 text-sm">
+            Unable to load graph data. Ensure Docker & Neo4j are running.
+          </div>
+        )}
+
         <ArchitectureGraph3D 
           nodes={nodes} 
           edges={edges} 
@@ -269,8 +311,10 @@ export default function MainExplorer() {
                         </div>
                         <div className="p-6 bg-white/5 border border-white/10 rounded-2xl relative group overflow-hidden">
                           <div className="absolute top-0 left-0 w-1 h-full bg-accent shadow-[0_0_15px_#6366f1]" />
-                          <p className="text-white/70 italic text-sm leading-relaxed">
-                            "Primary orchestrator for the system's runtime layer. This node manages the secure handshake between the API router and the database session."
+                          <p className="text-white/70 italic text-sm leading-relaxed max-h-48 overflow-y-auto custom-scrollbar">
+                            {activeNode?.type === 'dir'
+                              ? `Directory “${activeNode.path || activeNode.label}” — part of the repository tree (see 3D contains edges).`
+                              : `"${activeNode?.summary || 'File structure identified. Awaiting complete neural analysis parsing...'}"`}
                           </p>
                         </div>
                       </section>
@@ -279,11 +323,11 @@ export default function MainExplorer() {
                       <div className="grid grid-cols-2 gap-4">
                         <div className="bg-white/5 p-5 rounded-2xl border border-white/5 flex flex-col gap-1">
                           <span className="text-[9px] font-bold text-white/20 uppercase tracking-widest">Couplings</span>
-                          <span className="text-2xl font-bold text-white tracking-tighter">24 <span className="text-[10px] font-medium text-white/30 tracking-normal">Direct</span></span>
+                          <span className="text-2xl font-bold text-white tracking-tighter">{couplingCount} <span className="text-[10px] font-medium text-white/30 tracking-normal">Direct</span></span>
                         </div>
                         <div className="bg-white/5 p-5 rounded-2xl border border-white/5 flex flex-col gap-1">
                           <span className="text-[9px] font-bold text-white/20 uppercase tracking-widest">Complexity</span>
-                          <span className="text-2xl font-bold text-indigo-400 tracking-tighter">B <span className="text-[10px] font-medium text-white/30 tracking-normal">Optimal</span></span>
+                          <span className="text-2xl font-bold text-indigo-400 tracking-tighter">{complexityGrade} <span className="text-[10px] font-medium text-white/30 tracking-normal">Estimated</span></span>
                         </div>
                       </div>
 
@@ -296,12 +340,12 @@ export default function MainExplorer() {
                         <div className="bg-white/5 p-6 rounded-2xl border border-white/5 relative overflow-hidden">
                           <div className="flex items-end justify-between mb-3">
                               <span className="text-sm font-bold text-white/80 tracking-tight">System Ripple Factor</span>
-                              <span className="text-xs font-bold text-accent">82%</span>
+                              <span className="text-xs font-bold text-accent">{ripplePercent}%</span>
                           </div>
                           <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden">
                               <motion.div 
                                 initial={{ width: 0 }}
-                                animate={{ width: '82%' }}
+                                animate={{ width: `${ripplePercent}%` }}
                                 transition={{ delay: 0.5, duration: 1 }}
                                 className="h-full bg-gradient-to-r from-accent to-indigo-400 shadow-[0_0_20px_rgba(99,102,241,0.5)]"
                               />
@@ -319,26 +363,19 @@ export default function MainExplorer() {
                       exit={{ opacity: 0, x: -20 }}
                       className="h-full"
                     >
-                      <div className="bg-black/40 border border-white/10 rounded-2xl p-6 font-mono text-xs text-white/60 leading-relaxed overflow-hidden relative">
+                      <div className="bg-black/40 border border-white/10 rounded-2xl p-6 font-mono text-xs text-white/60 leading-relaxed overflow-hidden relative max-h-[420px] overflow-y-auto custom-scrollbar">
                          <div className="absolute top-0 right-0 p-2 opacity-20"><Terminal size={40} /></div>
-                         <div className="space-y-1">
-                            <div><span className="text-accent">from</span> fastapi <span className="text-accent">import</span> APIRouter, Depends</div>
-                            <div><span className="text-accent">from</span> sqlalchemy.orm <span className="text-accent">import</span> Session</div>
-                            <div className="opacity-0">.</div>
-                            <div>router = APIRouter()</div>
-                            <div className="opacity-0">.</div>
-                            <div><span className="text-accent">@router.post</span>(<span className="text-emerald-400">"/"</span>)</div>
-                            <div><span className="text-indigo-400">async def</span> <span className="text-yellow-400">create_operation</span>(</div>
-                            <div className="pl-4">db: Session = Depends(get_db)</div>
-                            <div>):</div>
-                            <div className="pl-4 text-white/40"># Initialize tactical layer sequence</div>
-                            <div className="pl-4">result = <span className="text-accent">await</span> analyze_architecture(db)</div>
-                            <div className="pl-4"><span className="text-accent">return</span> result</div>
-                         </div>
+                         {activeNode?.type === 'dir' ? (
+                           <p className="text-white/50 whitespace-pre-wrap">Select a file node to view source. This is a folder in the repo tree.</p>
+                         ) : (
+                           <pre className="whitespace-pre-wrap break-words text-left m-0">
+                             {activeNode?.code || 'No source captured for this file.'}
+                           </pre>
+                         )}
                       </div>
                       <div className="mt-6 flex items-center justify-between p-4 bg-white/5 border border-white/5 rounded-xl">
                          <span className="text-[10px] text-white/30 font-bold uppercase tracking-widest">Language</span>
-                         <span className="text-xs font-bold text-accent px-2 py-1 bg-accent/10 rounded-lg">PYTHON 3.12</span>
+                         <span className="text-xs font-bold text-accent px-2 py-1 bg-accent/10 rounded-lg uppercase">{activeNode?.label.split('.').pop() || 'UNKNOWN'}</span>
                       </div>
                     </motion.div>
                   )}

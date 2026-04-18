@@ -3,14 +3,18 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Link2, Sparkles, Zap, Shield, GitBranch, History, TrendingUp, ChevronRight, Terminal } from 'lucide-react';
 import IDELayout from '../components/IDE/IDELayout';
+import { useStore } from '../store/useStore';
 
 export default function RepoOnboarding() {
   const navigate = useNavigate();
-  const [repoUrl, setRepoUrl] = useState('');
+  const { setRepoUrl } = useStore();
+  const [inputUrl, setInputUrl] = useState('');
   const [branch, setBranch] = useState('main');
 
   const handleStartAnalysis = () => {
-    // Navigate to the pipeline page to show the simulation
+    if (!inputUrl.trim()) return;
+    // Save the URL into global store so AnalysisPipeline picks it up
+    setRepoUrl(inputUrl.trim());
     navigate('/pipeline');
   };
 
@@ -58,8 +62,9 @@ export default function RepoOnboarding() {
                       type="text" 
                       placeholder="https://github.com/owner/repository"
                       className="w-full bg-black/40 border border-white/10 rounded-2xl py-4 pl-14 pr-6 text-white placeholder:text-white/20 focus:outline-none focus:border-accent/50 focus:ring-1 focus:ring-accent/50 transition-all font-mono text-sm"
-                      value={repoUrl}
-                      onChange={(e) => setRepoUrl(e.target.value)}
+                      value={inputUrl}
+                      onChange={(e) => setInputUrl(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && handleStartAnalysis()}
                    />
                 </div>
 
@@ -83,8 +88,8 @@ export default function RepoOnboarding() {
                    {/* Start Button */}
                    <button 
                       onClick={handleStartAnalysis}
-                      disabled={!repoUrl && false} // Kept enabled for demo
-                      className="flex-[1.2] bg-accent hover:bg-accent/80 text-white font-bold rounded-2xl px-8 transition-all shadow-[0_4px_20px_rgba(99,102,241,0.4)] hover:shadow-[0_6px_25px_rgba(99,102,241,0.6)] flex items-center justify-center gap-2 group whitespace-nowrap"
+                      disabled={!inputUrl.trim()}
+                      className="flex-[1.2] bg-accent hover:bg-accent/80 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold rounded-2xl px-8 transition-all shadow-[0_4px_20px_rgba(99,102,241,0.4)] hover:shadow-[0_6px_25px_rgba(99,102,241,0.6)] flex items-center justify-center gap-2 group whitespace-nowrap"
                    >
                       Start Analysis
                       <ChevronRight size={18} className="group-hover:translate-x-1 transition-transform" />
@@ -118,7 +123,7 @@ export default function RepoOnboarding() {
                   <button 
                     key={i} 
                     className="text-left py-2 px-1 text-sm text-white/60 hover:text-white transition-colors border-b border-white/5 font-mono truncate"
-                    onClick={() => setRepoUrl(`https://github.com/${repo}`)}
+                    onClick={() => setInputUrl(`https://github.com/${repo}`)}
                   >
                     {repo}
                   </button>
@@ -135,7 +140,7 @@ export default function RepoOnboarding() {
                    <button 
                     key={i} 
                     className="text-left py-2 px-1 text-sm text-white/60 hover:text-white transition-colors border-b border-white/5 font-mono truncate"
-                    onClick={() => setRepoUrl(`https://github.com/${repo}`)}
+                    onClick={() => setInputUrl(`https://github.com/${repo}`)}
                   >
                     {repo}
                   </button>

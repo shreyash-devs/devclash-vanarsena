@@ -1,12 +1,11 @@
 import { useRef, useMemo } from 'react';
-import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import { Canvas, useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 
 function Particles() {
   const count = 1500;
   const mesh = useRef<THREE.InstancedMesh>(null);
   const light = useRef<THREE.PointLight>(null);
-  const { viewport } = useThree(); // Kept viewport if needed for bounds, otherwise can remove
 
   const particles = useMemo(() => {
     const temp = [];

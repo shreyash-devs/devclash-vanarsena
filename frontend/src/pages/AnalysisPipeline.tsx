@@ -1,7 +1,7 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Check, Loader2, User as UserIcon } from 'lucide-react';
+import { Check, Loader2 } from 'lucide-react';
 import IDELayout from '../components/IDE/IDELayout';
 import { useStore } from '../store/useStore';
 
@@ -14,63 +14,58 @@ const STAGES = [
 ];
 
 import ArchitectureGraph3D from '../components/Visualization/ArchitectureGraph3D';
-
-const MOCK_NODES = [
-  { id: '1', label: 'main.py', position: [0, 3, 0] as [number, number, number], role: 'entry' },
-  { id: '2', label: 'api/router.py', position: [2, 1.5, 0] as [number, number, number], role: 'core' },
-  { id: '3', label: 'core/security.py', position: [-2, 1.5, 0] as [number, number, number], role: 'core' },
-  { id: '4', label: 'db/session.py', position: [0, -1, 0] as [number, number, number], role: 'core' },
-  { id: '5', label: 'models/user.py', position: [2, -3, 1] as [number, number, number], role: 'core' },
-  { id: '6', label: 'models/item.py', position: [3, -3, -1] as [number, number, number], role: 'core' },
-  { id: '7', label: 'crud/user.py', position: [4, -1, 2] as [number, number, number], role: 'util' },
-  { id: '8', label: 'crud/item.py', position: [5, -1, -2] as [number, number, number], role: 'util' },
-  { id: '9', label: 'schemas/user.py', position: [-3, -3, 1] as [number, number, number], role: 'util' },
-  { id: '10', label: 'schemas/item.py', position: [-4, -3, -1] as [number, number, number], role: 'util' },
-  { id: '11', label: 'core/config.py', position: [-4, 1.5, 2] as [number, number, number], role: 'util' },
-  { id: '12', label: 'utils/logger.py', position: [-5, 0, -3] as [number, number, number], role: 'util' },
-  { id: '13', label: 'tests/test_api.py', position: [0, 5, -2] as [number, number, number], role: 'util' },
-];
-
-const MOCK_EDGES = [
-  { id: 'e1-2', source: '1', target: '2' },
-  { id: 'e1-3', source: '1', target: '3' },
-  { id: 'e2-5', source: '2', target: '5' },
-  { id: 'e2-6', source: '2', target: '6' },
-  { id: 'e3-4', source: '3', target: '4' },
-  { id: 'e4-5', source: '4', target: '5' },
-  { id: 'e4-6', source: '4', target: '6' },
-  { id: 'e5-7', source: '5', target: '7' },
-  { id: 'e6-8', source: '6', target: '8' },
-];
+import { API_BASE } from '../lib/api';
 
 export default function AnalysisPipeline() {
   const navigate = useNavigate();
-  const { analysisStage, analysisProgress, nodeCount, edgeCount, startAnalysis, abortProcess } = useStore();
+  const { analysisStage, analysisProgress, nodeCount, edgeCount, startAnalysis, abortProcess, repoUrl, repoId, analysisError } = useStore();
   const [timeLeft] = useState('04:22');
+  const hasStartedRef = useRef(false);
+
+  const [nodes, setNodes] = useState<any[]>([]);
+  const [edges, setEdges] = useState<any[]>([]);
 
   useEffect(() => {
-    startAnalysis();
-  }, [startAnalysis]);
+    if (repoUrl && !hasStartedRef.current) {
+      hasStartedRef.current = true;
+      startAnalysis(repoUrl);
+    }
+  }, [repoUrl, startAnalysis]);
 
+  // Only auto-navigate when analysis actually completed AND there's no error
   useEffect(() => {
-    if (analysisStage === 4 && analysisProgress >= 100) {
+    if (analysisStage === 4 && analysisProgress >= 100 && !analysisError) {
       setTimeout(() => navigate('/explorer'), 2000);
     }
-  }, [analysisStage, analysisProgress, navigate]);
+  }, [analysisStage, analysisProgress, analysisError, navigate]);
+
+  useEffect(() => {
+    if (!repoId) return;
+    fetch(`${API_BASE}/graph/${repoId}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.nodes) {
+          setNodes(data.nodes);
+          setEdges(data.edges || []);
+        }
+      })
+      .catch(console.error);
+  }, [repoId]);
 
   // Logic to show nodes appearing based on progress
   const visibleNodes = useMemo(() => {
-    const totalNodes = MOCK_NODES.length;
+    const totalNodes = nodes.length;
+    if (totalNodes === 0) return [];
     const countToShow = Math.floor((analysisProgress / 100) * (totalNodes + 2)); 
-    return MOCK_NODES.slice(0, Math.min(countToShow, totalNodes));
-  }, [analysisProgress]);
+    return nodes.slice(0, Math.min(countToShow, totalNodes));
+  }, [analysisProgress, nodes]);
 
   const visibleEdges = useMemo(() => {
-    return MOCK_EDGES.filter(edge => 
+    return edges.filter(edge => 
       visibleNodes.some(n => n.id === edge.source) && 
       visibleNodes.some(n => n.id === edge.target)
     );
-  }, [visibleNodes]);
+  }, [visibleNodes, edges]);
 
   const topbarCenter = (
     <div className="font-sans text-[10px] font-bold tracking-[0.2em] text-white/40 uppercase">
@@ -82,6 +77,20 @@ export default function AnalysisPipeline() {
     <IDELayout topbarCenter={topbarCenter}>
       <div className="h-full w-full flex bg-transparent relative overflow-hidden">
         
+        {/* Error Banner */}
+        {analysisError && (
+          <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 w-[min(640px,94vw)] max-h-[70vh] overflow-y-auto bg-red-950/80 backdrop-blur-md border border-red-500/30 rounded-2xl p-4 flex items-start gap-4 shadow-2xl">
+            <div className="w-8 h-8 rounded-lg bg-red-500/20 border border-red-500/40 flex items-center justify-center shrink-0 text-red-400 font-bold text-lg">!</div>
+            <div className="flex-1 min-w-0">
+              <div className="text-[10px] font-bold uppercase tracking-widest text-red-400 mb-1">Analysis Failed</div>
+              <p className="text-xs text-white/80 font-mono whitespace-pre-wrap break-words leading-relaxed">{analysisError}</p>
+            </div>
+            <button onClick={() => navigate('/onboarding')} className="shrink-0 text-xs text-red-400 hover:text-white border border-red-500/30 hover:border-white/20 px-3 py-1.5 rounded-lg transition-all">
+              Retry
+            </button>
+          </div>
+        )}
+
         {/* Live 3D Build Animation Area */}
         <div className="flex-1 relative">
            <div className="absolute top-8 left-8 z-10">
