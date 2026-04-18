@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  # Redis for Celery Broker & Result Backend
+  redis:
+    image: redis:7-alpine
+    container_name: devclash_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+
+  # PostgreSQL for Relational Metadata
+  postgres:
+    image: postgres:15-alpine
+    container_name: devclash_postgres
+    environment:
+      POSTGRES_USER: devclash
+      POSTGRES_PASSWORD: password123
+      POSTGRES_DB: devclash_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  # Neo4j for 3D Graph Structure
+  neo4j:
+    image: neo4j:5
+    container_name: devclash_neo4j
+    environment:
+      NEO4J_AUTH: neo4j/password123
+      # Enable APOC procedures if future AI algorithms need it
+      NEO4J_PLUGINS: '["apoc"]'
+      NEO4J_dbms_security_procedures_unrestricted: apoc.*
+    ports:
+      - "7474:7474" # HTTP Browser
+      - "7687:7687" # Bolt Protocol
+    volumes:
+      - neo4j_data:/data
+    restart: unless-stopped
+
+volumes:
+  redis_data:
+  postgres_data:
+  neo4j_data:
