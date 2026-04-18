@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { Files, Search, GitBranch, Blocks, Settings, Terminal } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import InteractiveBackground from '../Visualization/InteractiveBackground';
 
 interface IDELayoutProps {
   children: ReactNode;
@@ -23,12 +24,14 @@ const SIDEBAR_BOTTOM_ITEMS = [
 export default function IDELayout({ children, topbarCenter, topbarRight, sidebarContent }: IDELayoutProps) {
 
   return (
-    <div className="flex flex-col h-screen w-full bg-background text-text-primary overflow-hidden">
+    <div className="flex flex-col h-screen w-full bg-transparent text-text-primary overflow-hidden font-sans">
+      <InteractiveBackground />
+      
       {/* Top Bar */}
-      <div className="h-12 border-b border-border bg-surface flex items-center justify-between px-4 shrink-0">
+      <div className="h-12 border-b border-white/5 bg-black/40 backdrop-blur-xl flex items-center justify-between px-4 shrink-0 z-20">
         <Link to="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
           <Terminal size={18} className="text-accent" />
-          <span className="font-sans font-semibold tracking-wide text-sm">Repository Navigator</span>
+          <span className="font-sans font-bold tracking-tight text-sm text-white/90">VANARSENA</span>
         </Link>
         
         <div className="flex-1 flex justify-center">
@@ -40,9 +43,9 @@ export default function IDELayout({ children, topbarCenter, topbarRight, sidebar
         </div>
       </div>
 
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 overflow-hidden z-10">
         {/* Activity Bar (Icon column) */}
-        <div className="w-12 bg-surface border-r border-border flex flex-col items-center py-4 shrink-0 justify-between">
+        <div className="w-12 bg-black/50 backdrop-blur-md border-r border-white/5 flex flex-col items-center py-4 shrink-0 justify-between">
           <div className="flex flex-col gap-4 w-full">
             {SIDEBAR_ITEMS.map((item) => (
               <button 
@@ -51,7 +54,7 @@ export default function IDELayout({ children, topbarCenter, topbarRight, sidebar
                 title={item.label}
               >
                 {item.id === 'explorer' && (
-                  <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-accent" />
+                  <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-accent shadow-[0_0_10px_#6366f1]" />
                 )}
                 <item.icon size={22} strokeWidth={1.5} />
               </button>
@@ -72,9 +75,9 @@ export default function IDELayout({ children, topbarCenter, topbarRight, sidebar
 
         {/* Primary Side Bar */}
         {sidebarContent && (
-          <div className="w-[220px] bg-surface-flat border-r border-border flex flex-col shrink-0">
-             <div className="px-4 py-3 text-[11px] font-mono tracking-wider text-text-secondary">
-               EXPLORER
+          <div className="w-[240px] bg-black/30 backdrop-blur-lg border-r border-white/5 flex flex-col shrink-0">
+             <div className="px-5 py-3 text-[10px] font-bold tracking-[0.2em] text-white/40 uppercase">
+               Explorer
              </div>
              <div className="flex-1 overflow-y-auto">
                 {sidebarContent}
@@ -83,27 +86,25 @@ export default function IDELayout({ children, topbarCenter, topbarRight, sidebar
         )}
 
         {/* Editor / Canvas Area */}
-        <div className="flex-1 relative bg-background overflow-hidden relative">
+        <div className="flex-1 relative bg-transparent overflow-hidden">
           {children}
         </div>
       </div>
 
       {/* Status Bar */}
-      <div className="h-6 bg-accent/10 border-t border-border flex items-center justify-between px-3 text-[11px] font-mono shrink-0">
+      <div className="h-6 bg-black/60 backdrop-blur-md border-t border-white/5 flex items-center justify-between px-3 text-[10px] font-mono shrink-0 z-20 text-white/60">
         <div className="flex items-center gap-4">
-          <span className="flex items-center gap-1.5 opacity-80">
-            <span className="w-2 h-2 rounded-full bg-green-500"></span>
-            INDEXED
+          <span className="flex items-center gap-1.5 font-bold text-accent">
+            <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse"></span>
+            CONNECTED
           </span>
-          <span className="opacity-60">UTF-8</span>
-          <span className="opacity-60">Python 3.11</span>
-          <span className="opacity-60">© 2024</span>
+          <span className="opacity-40">UTF-8</span>
+          <span className="opacity-40 uppercase">Mayur Branch</span>
+          <span className="opacity-40">© 2024</span>
         </div>
-        <div className="flex items-center gap-4 opacity-60">
+        <div className="flex items-center gap-4 opacity-40">
           <Link to="#" className="hover:opacity-100 transition-opacity">Docs</Link>
-          <Link to="#" className="hover:opacity-100 transition-opacity">API</Link>
-          <Link to="#" className="hover:opacity-100 transition-opacity">Status</Link>
-          <Link to="#" className="hover:opacity-100 transition-opacity">Privacy</Link>
+          <Link to="#" className="hover:opacity-100 transition-opacity">System</Link>
         </div>
       </div>
     </div>
