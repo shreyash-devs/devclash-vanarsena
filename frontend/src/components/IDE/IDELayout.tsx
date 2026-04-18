@@ -73,13 +73,25 @@ export default function IDELayout({ children, topbarCenter, topbarRight, sidebar
           </div>
         </div>
 
-        {/* Primary Side Bar */}
+        {/* Primary Side Bar - Floating Tactical Panel */}
         {sidebarContent && (
-          <div className="w-[240px] bg-black/30 backdrop-blur-lg border-r border-white/5 flex flex-col shrink-0">
-             <div className="px-5 py-3 text-[10px] font-bold tracking-[0.2em] text-white/40 uppercase">
-               Explorer
+          <div className="absolute top-4 left-16 bottom-4 w-[320px] bg-indigo-950/20 backdrop-blur-3xl border border-indigo-500/20 rounded-[32px] flex flex-col shrink-0 z-30 shadow-[0_20px_50px_rgba(0,0,0,0.6)] overflow-hidden">
+             {/* Nebula Sheen Overlay */}
+             <div className="absolute inset-0 bg-gradient-to-br from-accent/5 via-transparent to-transparent pointer-events-none" />
+             
+             {/* Header Section */}
+             <div className="px-8 py-5 flex items-center justify-between border-b border-white/5 bg-white/[0.01]">
+                <div className="flex flex-col">
+                  <div className="flex items-center gap-2">
+                    <Files size={12} className="text-accent" />
+                    <span className="text-[10px] font-black tracking-[0.2em] text-white/30 uppercase">Workspace Nav</span>
+                  </div>
+                  <span className="font-bold text-white tracking-tight">Project Files</span>
+                </div>
+                <div className="w-2 h-2 rounded-full bg-accent/40 border border-accent/60 shadow-[0_0_10px_rgba(99,102,241,0.5)]" />
              </div>
-             <div className="flex-1 overflow-y-auto">
+             
+             <div className="flex-1 overflow-y-auto custom-scrollbar">
                 {sidebarContent}
              </div>
           </div>

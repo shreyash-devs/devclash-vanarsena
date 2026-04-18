@@ -111,7 +111,7 @@ const Node = ({ data, isSelected, onClick }: { data: NodeData; isSelected: boole
         <Text
           position={[0, 0.6, 0]}
           fontSize={0.12}
-          color="white"
+          color="#cccccc"
           anchorX="center"
           anchorY="middle"
           fontWeight="bold"
@@ -137,18 +137,122 @@ const Node = ({ data, isSelected, onClick }: { data: NodeData; isSelected: boole
   );
 };
 
-// Connection Component using Drei Line for stability
-const Connection = ({ start, end }: { start: [number, number, number]; end: [number, number, number] }) => {
+import { EffectComposer, Bloom } from '@react-three/postprocessing';
+
+// Connection Component with "Laser Glow"
+const Connection = ({ start, end, color }: { start: [number, number, number]; end: [number, number, number]; color: string }) => {
+  const lineRef = useRef<any>(null);
+  const glowRef = useRef<any>(null);
+  
+  useFrame((state) => {
+    if (lineRef.current) lineRef.current.dashOffset -= 0.01;
+    if (glowRef.current) glowRef.current.dashOffset -= 0.01;
+  });
+
   return (
-    <Line
-      points={[start, end]}
-      color="#ffffff"
-      lineWidth={0.5}
-      transparent
-      opacity={0.15}
-    />
+    <group>
+      {/* Outer Glow Path */}
+      <Line
+        ref={glowRef}
+        points={[start, end]}
+        color={color}
+        lineWidth={4}
+        transparent
+        opacity={0.15}
+        dashed
+        dashScale={8}
+        dashSize={0.4}
+      />
+      {/* Sharp Laser Core */}
+      <Line
+        ref={lineRef}
+        points={[start, end]}
+        color={color}
+        lineWidth={1.2}
+        transparent
+        opacity={0.8}
+        dashed
+        dashScale={8}
+        dashSize={0.4}
+      />
+    </group>
   );
 };
+
+function Scene({ nodes, edges, selectedId, onSelect }: { nodes: NodeData[]; edges: EdgeData[]; selectedId: string | null; onSelect: (id: string | null) => void }) {
+  const { camera, controls } = useThree() as any;
+  const groupRef = useRef<THREE.Group>(null);
+  
+  // Smooth Camera Zoom Logic
+  useFrame((state, delta) => {
+    if (selectedId) {
+      const targetNode = nodes.find(n => n.id === selectedId);
+      if (targetNode && controls) {
+        const targetPos = new THREE.Vector3(...targetNode.position);
+        controls.target.lerp(targetPos, 0.1);
+        const offset = new THREE.Vector3(0, 0.5, 3);
+        const idealCameraPos = targetPos.clone().add(offset);
+        camera.position.lerp(idealCameraPos, 0.05);
+        controls.update();
+      }
+    } else {
+      if (controls) {
+        controls.target.lerp(new THREE.Vector3(0, 0, 0), 0.05);
+        camera.position.lerp(new THREE.Vector3(0, 0, 10), 0.02);
+        controls.update();
+      }
+    }
+  });
+
+  return (
+    <>
+      <PerspectiveCamera makeDefault position={[0, 0, 10]} fov={50} />
+      <OrbitControls makeDefault enableDamping dampingFactor={0.05} minDistance={2} maxDistance={20} />
+      
+      <ambientLight intensity={0.1} />
+      <pointLight position={[10, 10, 10]} intensity={2} />
+      <pointLight position={[-10, -5, -5]} intensity={1.5} color="#6366f1" />
+      
+      <group ref={groupRef}>
+        <Particles />
+        {edges.map((edge) => {
+          const startNode = nodes.find(n => n.id === edge.source);
+          const endNode = nodes.find(n => n.id === edge.target);
+          if (!startNode || !endNode) return null;
+          return (
+            <Connection 
+              key={edge.id} 
+              start={startNode.position} 
+              end={endNode.position} 
+              color={colors[startNode.role]} 
+            />
+          );
+        })}
+        
+        {nodes.map((node) => (
+          <Node 
+            key={node.id} 
+            data={node} 
+            isSelected={selectedId === node.id}
+            onClick={() => onSelect(node.id)} 
+          />
+        ))}
+      </group>
+
+      <EffectComposer>
+        <Bloom 
+          luminanceThreshold={1} 
+          mipmapBlur 
+          intensity={1.2} 
+          radius={0.4}
+        />
+      </EffectComposer>
+
+      <Environment preset="city" />
+      <ContactShadows position={[0, -4.5, 0]} scale={20} blur={2} far={4.5} />
+    </>
+  );
+}
 
 export default function ArchitectureGraph3D({ 
   nodes, 
@@ -165,34 +269,7 @@ export default function ArchitectureGraph3D({
     <div className="w-full h-full bg-[#010103]">
       <Canvas shadows dpr={[1, 2]}>
         <Stars radius={100} depth={50} count={5000} factor={4} saturation={0} fade speed={1} />
-        <PerspectiveCamera makeDefault position={[0, 0, 10]} fov={50} />
-        <OrbitControls makeDefault enableDamping dampingFactor={0.05} />
-        
-        <ambientLight intensity={0.2} />
-        <pointLight position={[10, 10, 10]} intensity={1.5} />
-        <spotLight position={[-10, 10, 10]} angle={0.15} penumbra={1} intensity={1} castShadow />
-        
-        <group>
-          <Particles />
-          {edges.map((edge) => {
-            const startNode = nodes.find(n => n.id === edge.source);
-            const endNode = nodes.find(n => n.id === edge.target);
-            if (!startNode || !endNode) return null;
-            return <Connection key={edge.id} start={startNode.position} end={endNode.position} />;
-          })}
-          
-          {nodes.map((node) => (
-            <Node 
-              key={node.id} 
-              data={node} 
-              isSelected={selectedId === node.id}
-              onClick={() => onSelect(node.id)} 
-            />
-          ))}
-        </group>
-
-        <Environment preset="city" />
-        <ContactShadows position={[0, -4.5, 0]} scale={20} blur={2} far={4.5} />
+        <Scene nodes={nodes} edges={edges} selectedId={selectedId} onSelect={onSelect} />
       </Canvas>
     </div>
   );
