@@ -31,7 +31,8 @@ class GitHubService:
         dest.mkdir(parents=True, exist_ok=True)
         
         try:
-            repo = await asyncio.to_thread(git.Repo.clone_from, url, dest)
+            env = {"GIT_TERMINAL_PROMPT": "0"}
+            repo = await asyncio.to_thread(git.Repo.clone_from, url, dest, env=env)
         except Exception as e:
             logger.error("clone_failed", error=str(e))
             raise ValueError(f"Failed to clone repository: {url}")

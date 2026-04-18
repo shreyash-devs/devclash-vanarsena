@@ -15,6 +15,13 @@ async def lifespan(app: FastAPI):
     # Initialise DB connections on startup
     logger.info("server_starting", role=settings.MACHINE_ROLE)
     
+    from app.db.session import init_db
+    try:
+        await init_db()
+        logger.info("postgres_initialized_successfully")
+    except Exception as e:
+        logger.error("postgres_initialization_failed", error=str(e))
+    
     # Ping all Ollama hosts and log which are reachable
     reachable_hosts = []
     async with httpx.AsyncClient(timeout=3.0) as client:
@@ -42,10 +49,17 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
-# CORS enabled for http://localhost:3000
+# CORS enabled for http://localhost:3000 and Vite (5173)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=[
+        "http://localhost:3000",
+        "http://localhost:5173",
+        "http://localhost:5174",
+        "http://127.0.0.1:5173",
+        "http://127.0.0.1:5174",
+    ],
+    allow_origin_regex=r"https?://(localhost|127\.0\.0\.1)(:\d+)?$",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

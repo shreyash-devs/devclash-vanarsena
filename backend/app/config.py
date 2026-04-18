@@ -30,7 +30,9 @@ class Settings(BaseSettings):
     MAX_FILE_SIZE_KB: int = 500
     SUPPORTED_EXTENSIONS: list[str] = [
         ".py", ".ts", ".tsx", ".js", ".jsx",
-        ".go", ".java", ".rs", ".rb", ".php"
+        ".go", ".java", ".rs", ".rb", ".php",
+        ".html", ".css", ".scss", ".json", ".md",
+        ".yml", ".yaml", ".xml", ".sh", ".sql"
     ]
 
     @property
