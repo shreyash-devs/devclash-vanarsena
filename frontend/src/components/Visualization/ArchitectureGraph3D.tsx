@@ -11,6 +11,9 @@ interface NodeData {
   summary?: string;
   type?: 'file' | 'dir';
   path?: string;
+  /** Analysis-driven hex from backend (risk / structure / stable palette). */
+  color?: string;
+  intel_signal?: 'risk' | 'structure' | 'stable';
 }
 
 interface EdgeData {
@@ -34,6 +37,13 @@ const colors: Record<string, string> = {
   util: '#64748b',  // Slate
   integration: '#f59e0b', // Amber
 };
+
+function resolveBlockColor(data: NodeData): string {
+  const hex = typeof data.color === 'string' ? data.color.trim() : '';
+  if (/^#[0-9a-f]{6}$/i.test(hex)) return hex;
+  const normalizedRole = (data.role || 'util').toLowerCase();
+  return colors[normalizedRole] || colors.util;
+}
 
 function Particles() {
   const count = 1000;
@@ -89,8 +99,7 @@ function Particles() {
 const Node = ({ data, isSelected, onClick }: { data: NodeData; isSelected: boolean; onClick: () => void }) => {
   const [hovered, setHovered] = useState(false);
   const isDir = data.type === 'dir';
-  const normalizedRole = data.role?.toLowerCase() || 'util';
-  const color = isDir ? '#64748b' : colors[normalizedRole] || colors.util;
+  const color = resolveBlockColor(data);
   const boxArgs = isDir ? ([0.35, 0.22, 0.35] as [number, number, number]) : ([0.6, 0.6, 0.6] as [number, number, number]);
   const labelSize = isDir ? 0.08 : 0.12;
   const labelY = isDir ? 0.38 : 0.6;
