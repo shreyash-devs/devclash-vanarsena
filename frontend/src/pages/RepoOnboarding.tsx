@@ -18,17 +18,6 @@ export default function RepoOnboarding() {
     navigate('/pipeline');
   };
 
-  const recentRepos = [
-    'shreyash-devs/vanarsena',
-    'facebook/react',
-    'tailwindlabs/tailwindcss'
-  ];
-
-  const popularRepos = [
-    'vercel/next.js',
-    'microsoft/vscode',
-    'anthropic/claude-ai'
-  ];
 
   return (
     <div className="w-screen h-screen flex flex-col relative overflow-hidden bg-black font-sans">
@@ -109,14 +98,7 @@ export default function RepoOnboarding() {
 
             {/* Bottom Row: Context Toggles & Status */}
             <div className="flex items-center justify-between px-6 py-4 bg-black/20">
-               <div className="flex items-center gap-4">
-                  <button className="flex items-center gap-2 bg-[#2a3c75] text-blue-300 px-3 py-1.5 rounded-lg text-sm font-semibold border border-blue-400/20 shadow-[0_0_15px_rgba(59,130,246,0.15)] transition-all">
-                     <Code2 size={14} /> Repo
-                  </button>
-                  <button className="flex items-center gap-2 text-white/40 hover:text-white/80 transition-colors px-3 py-1.5 rounded-lg text-sm font-semibold">
-                     <FolderOpen size={14} /> Local
-                  </button>
-               </div>
+               <div className="flex-1" />
                
                <div className="flex items-center gap-2 text-white/30 text-xs font-mono font-bold tracking-widest uppercase">
                   <Cpu size={14} className="text-white/20" />
@@ -139,41 +121,6 @@ export default function RepoOnboarding() {
                 ))}
              </div>
 
-          <div className="grid grid-cols-2 gap-8 mt-12 w-full">
-             {/* Recent */}
-             <div className="flex flex-col gap-4">
-                <div className="flex items-center gap-2 text-white/40 text-[10px] font-bold uppercase tracking-[0.2em] mb-1">
-                   <History size={14} />
-                   Recent Repositories
-                </div>
-                {recentRepos.map((repo, i) => (
-                  <button 
-                    key={i} 
-                    className="text-left py-2 px-1 text-sm text-white/60 hover:text-white transition-colors border-b border-white/5 font-mono truncate"
-                    onClick={() => setInputUrl(`https://github.com/${repo}`)}
-                  >
-                    {repo}
-                  </button>
-                ))}
-             </div>
-
-             {/* Popular */}
-             <div className="flex flex-col gap-4">
-                <div className="flex items-center gap-2 text-white/40 text-[10px] font-bold uppercase tracking-[0.2em] mb-1">
-                   <TrendingUp size={14} />
-                   Popular Now
-                </div>
-                {popularRepos.map((repo, i) => (
-                   <button 
-                    key={i} 
-                    className="text-left py-2 px-1 text-sm text-white/60 hover:text-white transition-colors border-b border-white/5 font-mono truncate"
-                    onClick={() => setInputUrl(`https://github.com/${repo}`)}
-                  >
-                    {repo}
-                  </button>
-                ))}
-             </div>
-          </div>
         </motion.div>
         
         </div>
