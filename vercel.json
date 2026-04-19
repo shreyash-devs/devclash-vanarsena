@@ -1,0 +1,16 @@
+{
+  "experimentalServices": {
+    "web": {
+      "entrypoint": "frontend",
+      "routePrefix": "/",
+      "framework": "vite"
+    },
+    "api": {
+      "entrypoint": "backend/app/main.py",
+      "routePrefix": "/api",
+      "framework": "fastapi",
+      "maxDuration": 300,
+      "memory": 1024
+    }
+  }
+}
