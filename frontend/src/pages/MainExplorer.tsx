@@ -297,8 +297,8 @@ export default function MainExplorer() {
   const activeNode = nodes.find(n => n.id === selectedNodeId);
   const fanIn = coerceCount(activeNode?.in_degree);
   const fanOut = coerceCount(activeNode?.out_degree);
-  const couplingCount = totalCouplingEdges(activeNode?.in_degree, activeNode?.out_degree);
-  const couplingTier = evaluateCouplingTier(activeNode?.in_degree, activeNode?.out_degree);
+  const couplingCount = fanIn + fanOut;
+  const couplingTier = evaluateCouplingTier(fanIn, fanOut);
   const impactSpread = evaluateImpactSpread(activeNode?.impact_score);
 
   const formatLastTouched = (iso?: string) => {
@@ -484,20 +484,25 @@ export default function MainExplorer() {
                             </div>
                           </div>
                           <div className="grid grid-cols-2 gap-3">
-                            <HudMetric label="line_count" value={Number(activeNode?.line_count ?? 0)} accent="neutral" />
-                            <HudMetric label="function_count" value={Number(activeNode?.function_count ?? 0)} accent="structure" />
-                            <HudMetric label="class_count" value={Number(activeNode?.class_count ?? 0)} accent="structure" />
-                            <HudMetric label="export_count" value={Number(activeNode?.export_count ?? 0)} accent="structure" />
-                            <HudMetric label="language" value={(activeNode?.language || '—').toString()} />
+                            <HudMetric label="Lines of Code" value={coerceCount(activeNode?.line_count).toLocaleString()} accent="neutral" />
+                            <HudMetric 
+                              label="Structural Complexity" 
+                              value={coerceCount(activeNode?.function_count) + coerceCount(activeNode?.class_count)} 
+                              accent="structure" 
+                            />
+                            <HudMetric label="Functions" value={coerceCount(activeNode?.function_count)} accent="structure" />
+                            <HudMetric label="Classes" value={coerceCount(activeNode?.class_count)} accent="structure" />
+                            <HudMetric label="Exports" value={coerceCount(activeNode?.export_count)} accent="structure" />
+                            <HudMetric label="Language" value={(activeNode?.language || '—').toString()} />
                             <HudMetric
-                              label="commits touching (90d)"
-                              value={Number(activeNode?.change_frequency ?? 0)}
-                              accent={metricAccent('churn', Number(activeNode?.change_frequency ?? 0))}
+                              label="Churn (90 days)"
+                              value={coerceCount(activeNode?.change_frequency)}
+                              accent={metricAccent('churn', coerceCount(activeNode?.change_frequency))}
                             />
                           </div>
                           <div className="grid grid-cols-1 gap-3">
-                            <HudMetric label="last_modified" value={formatLastTouched(activeNode?.last_modified)} />
-                            <HudMetric label="primary_author" value={(activeNode?.primary_author || '—').toString()} />
+                            <HudMetric label="Last Modified" value={formatLastTouched(activeNode?.last_modified)} />
+                            <HudMetric label="Primary Author" value={(activeNode?.primary_author || '—').toString()} />
                           </div>
                           <div>
                             <div className="text-[8px] font-bold text-white/25 uppercase tracking-widest mb-2">external_deps</div>

@@ -76,36 +76,37 @@ export interface ImpactSpread {
 
 export function evaluateImpactSpread(impactScore?: unknown): ImpactSpread {
   let v = coerceCount(impactScore);
-  // Backend PageRank is 0–1; tolerate a 0–100 percent payload if it ever appears.
-  if (v > 1) v = Math.min(1, v / 100);
-  const normalized = Math.max(0, Math.min(1, v));
-  const percent = Math.min(100, Math.max(0, Math.round(normalized * 100)));
+  
+  // Backend PageRank values sum to 1 across the whole graph.
+  // In a 100-node graph, avg is 0.01. Central nodes are 3-10x higher.
+  // We amplify the raw score for the UI progress bar.
+  const percent = Math.min(100, Math.max(0, Math.round(v * 250)));
 
-  if (percent >= 70) {
+  if (percent >= 45) {
     return {
       percent,
       band: 'central',
-      caption: 'High centrality — many dependency paths are influenced by this node.',
-    };
-  }
-  if (percent >= 40) {
-    return {
-      percent,
-      band: 'elevated',
-      caption: 'Above-average reach in the import graph; review blast radius before large edits.',
+      caption: 'Main hub — sits on many critical dependency paths.',
     };
   }
   if (percent >= 15) {
     return {
       percent,
+      band: 'elevated',
+      caption: 'High reach — influences a significant part of the graph.',
+    };
+  }
+  if (percent >= 5) {
+    return {
+      percent,
       band: 'modest',
-      caption: 'Moderate influence — typical for a non-entry module.',
+      caption: 'Standard module — typical connectivity for this project.',
     };
   }
   return {
     percent,
     band: 'isolated',
-    caption: 'Low graph reach from here in the analyzed file set.',
+    caption: 'Peripheral node — minimal dependency overlap detected.',
   };
 }
 
