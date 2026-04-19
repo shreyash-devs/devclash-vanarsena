@@ -210,10 +210,11 @@ async def analyze_repo(repo_url: str, job_id: str, settings: Settings, db: Any =
             
             try:
                 await neo4j_service.store_parsed_repo(
-                    repo_id=repo_id_str, # Use the string slug ID defined earlier, not the job UUID
+                    repo_id=repo_id_str,  # slug id, not job UUID
                     parsed_files=parsed_files,
                     summaries=summaries_by_file,
-                    embeddings=embeddings_by_file
+                    embeddings=embeddings_by_file,
+                    clone_root=dest,
                 )
                 logger.info("neo4j_storage_complete", repo_id=repo_id_str)
             except Exception as e:

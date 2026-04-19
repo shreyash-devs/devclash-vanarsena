@@ -5,9 +5,41 @@ import IDELayout from '../components/IDE/IDELayout';
 import { useStore } from '../store/useStore';
 import ArchitectureGraph3D from '../components/Visualization/ArchitectureGraph3D';
 import { API_BASE } from '../lib/api';
+import {
+  coerceCount,
+  evaluateCouplingTier,
+  evaluateImpactSpread,
+  impactSpreadBarClass,
+  totalCouplingEdges,
+} from '../lib/explorerNodeVitals';
 
 const initialNodes3D: any[] = [];
 const initialEdges3D: any[] = [];
+
+type IntelAccent = 'risk' | 'structure' | 'stable' | 'neutral';
+
+function intelCardClasses(accent: IntelAccent) {
+  switch (accent) {
+    case 'risk':
+      return 'border-red-500/35 bg-red-500/[0.06]';
+    case 'structure':
+      return 'border-sky-500/35 bg-sky-500/[0.06]';
+    case 'stable':
+      return 'border-emerald-500/30 bg-emerald-500/[0.05]';
+    default:
+      return 'border-white/5 bg-white/[0.03]';
+  }
+}
+
+function metricAccent(metricId: string, numericValue: number): IntelAccent {
+  if (metricId === 'churn') {
+    if (numericValue >= 14) return 'risk';
+    if (numericValue >= 5) return 'structure';
+    return 'stable';
+  }
+  if (metricId === 'structure') return 'structure';
+  return 'neutral';
+}
 
 const FileItem = ({ file, selectedId, onSelect }: { file: any, selectedId: string | null, onSelect: (id: string | null) => void }) => (
   <div 
@@ -217,9 +249,37 @@ export default function MainExplorer() {
   );
 
   const activeNode = nodes.find(n => n.id === selectedNodeId);
-  const couplingCount = (activeNode?.in_degree || 0) + (activeNode?.out_degree || 0);
-  const complexityGrade = couplingCount >= 12 ? "A" : couplingCount >= 7 ? "B" : couplingCount >= 4 ? "C" : "D";
-  const ripplePercent = Math.min(100, Math.round((activeNode?.impact_score || 0) * 100));
+  const fanIn = coerceCount(activeNode?.in_degree);
+  const fanOut = coerceCount(activeNode?.out_degree);
+  const couplingCount = totalCouplingEdges(activeNode?.in_degree, activeNode?.out_degree);
+  const couplingTier = evaluateCouplingTier(activeNode?.in_degree, activeNode?.out_degree);
+  const impactSpread = evaluateImpactSpread(activeNode?.impact_score);
+
+  const formatLastTouched = (iso?: string) => {
+    if (!iso) return '—';
+    try {
+      const d = new Date(iso);
+      if (Number.isNaN(d.getTime())) return iso;
+      return d.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
+    } catch {
+      return iso;
+    }
+  };
+
+  const HudMetric = ({
+    label,
+    value,
+    accent = 'neutral',
+  }: {
+    label: string;
+    value: string | number;
+    accent?: IntelAccent;
+  }) => (
+    <div className={`p-3 rounded-xl border flex flex-col gap-0.5 min-w-0 ${intelCardClasses(accent)}`}>
+      <span className="text-[8px] font-bold text-white/25 uppercase tracking-widest truncate">{label}</span>
+      <span className="text-sm font-semibold text-white/90 tracking-tight truncate" title={String(value)}>{value}</span>
+    </div>
+  );
 
   return (
     <IDELayout topbarCenter={topbarCenter} topbarRight={topbarRight} sidebarContent={sidebarContent}>
@@ -313,7 +373,7 @@ export default function MainExplorer() {
                           <div className="absolute top-0 left-0 w-1 h-full bg-accent shadow-[0_0_15px_#6366f1]" />
                           <p className="text-white/70 italic text-sm leading-relaxed max-h-48 overflow-y-auto custom-scrollbar">
                             {activeNode?.type === 'dir'
-                              ? `Directory “${activeNode.path || activeNode.label}” — part of the repository tree (see 3D contains edges).`
+                              ? `Directory “${activeNode.path || activeNode.label}” — folder metrics below aggregate every analyzed file under this path (see 3D contains edges).`
                               : `"${activeNode?.summary || 'File structure identified. Awaiting complete neural analysis parsing...'}"`}
                           </p>
                         </div>
@@ -323,32 +383,123 @@ export default function MainExplorer() {
                       <div className="grid grid-cols-2 gap-4">
                         <div className="bg-white/5 p-5 rounded-2xl border border-white/5 flex flex-col gap-1">
                           <span className="text-[9px] font-bold text-white/20 uppercase tracking-widest">Couplings</span>
-                          <span className="text-2xl font-bold text-white tracking-tighter">{couplingCount} <span className="text-[10px] font-medium text-white/30 tracking-normal">Direct</span></span>
+                          <span className="text-2xl font-bold text-white tracking-tighter tabular-nums">
+                            {couplingCount}{' '}
+                            <span className="text-[10px] font-medium text-white/30 tracking-normal">direct edges</span>
+                          </span>
+                          <span className="text-[10px] text-white/35 mt-0.5 tabular-nums">
+                            fan-in {fanIn} · fan-out {fanOut}
+                          </span>
                         </div>
-                        <div className="bg-white/5 p-5 rounded-2xl border border-white/5 flex flex-col gap-1">
-                          <span className="text-[9px] font-bold text-white/20 uppercase tracking-widest">Complexity</span>
-                          <span className="text-2xl font-bold text-indigo-400 tracking-tighter">{complexityGrade} <span className="text-[10px] font-medium text-white/30 tracking-normal">Estimated</span></span>
+                        <div
+                          className="bg-white/5 p-5 rounded-2xl border border-white/5 flex flex-col gap-1"
+                          title={couplingTier.description}
+                        >
+                          <span className="text-[9px] font-bold text-white/20 uppercase tracking-widest">Coupling tier</span>
+                          <span className="text-2xl font-bold text-indigo-400 tracking-tighter">
+                            {couplingTier.code}
+                            <span className="text-[10px] font-medium text-white/35 tracking-normal ml-1.5">
+                              {couplingTier.severity}
+                            </span>
+                          </span>
                         </div>
                       </div>
 
-                      {/* Risk Analysis */}
+                      <section className="flex flex-col gap-4">
+                          <div className="flex items-center justify-between mb-1 gap-2 flex-wrap">
+                            <div className="text-[10px] font-bold tracking-[0.2em] text-white/30 uppercase">Intelligence metrics</div>
+                            <div className="flex items-center gap-2 flex-wrap justify-end">
+                              {(() => {
+                                const s = (activeNode?.intel_signal || 'stable') as 'risk' | 'structure' | 'stable';
+                                const pill =
+                                  s === 'risk'
+                                    ? 'bg-red-500/20 text-red-200 border-red-500/45'
+                                    : s === 'structure'
+                                      ? 'bg-sky-500/20 text-sky-100 border-sky-500/45'
+                                      : 'bg-emerald-500/15 text-emerald-100 border-emerald-500/40';
+                                const label =
+                                  s === 'risk' ? 'Risk (churn / coupling)' : s === 'structure' ? 'Structure (density)' : 'Stable baseline';
+                                return (
+                                  <span
+                                    className={`text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md border ${pill}`}
+                                    title="Derived from AST + git history: red = hot or fragile, blue = structurally dense, green = calmer baseline."
+                                  >
+                                    {label}
+                                  </span>
+                                );
+                              })()}
+                              {activeNode?.circular_dep && (
+                                <span className="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md bg-red-500/20 text-red-300 border border-red-500/40">
+                                  Circular import
+                                </span>
+                              )}
+                              {activeNode?.type === 'dir' && (
+                                <span className="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md bg-white/10 text-white/60 border border-white/15">
+                                  Folder aggregate
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-2 gap-3">
+                            <HudMetric label="line_count" value={Number(activeNode?.line_count ?? 0)} accent="neutral" />
+                            <HudMetric label="function_count" value={Number(activeNode?.function_count ?? 0)} accent="structure" />
+                            <HudMetric label="class_count" value={Number(activeNode?.class_count ?? 0)} accent="structure" />
+                            <HudMetric label="export_count" value={Number(activeNode?.export_count ?? 0)} accent="structure" />
+                            <HudMetric label="language" value={(activeNode?.language || '—').toString()} />
+                            <HudMetric
+                              label="commits touching (90d)"
+                              value={Number(activeNode?.change_frequency ?? 0)}
+                              accent={metricAccent('churn', Number(activeNode?.change_frequency ?? 0))}
+                            />
+                          </div>
+                          <div className="grid grid-cols-1 gap-3">
+                            <HudMetric label="last_modified" value={formatLastTouched(activeNode?.last_modified)} />
+                            <HudMetric label="primary_author" value={(activeNode?.primary_author || '—').toString()} />
+                          </div>
+                          <div>
+                            <div className="text-[8px] font-bold text-white/25 uppercase tracking-widest mb-2">external_deps</div>
+                            <div className="flex flex-wrap gap-1.5">
+                              {(Array.isArray(activeNode?.external_deps) && activeNode.external_deps.length > 0)
+                                ? activeNode.external_deps.map((p: string) => (
+                                    <span key={p} className="text-[10px] px-2 py-0.5 rounded-lg bg-indigo-500/15 text-indigo-200 border border-indigo-500/25 font-mono">
+                                      {p}
+                                    </span>
+                                  ))
+                                : <span className="text-xs text-white/35">None detected</span>}
+                            </div>
+                          </div>
+                          <div>
+                            <div className="text-[8px] font-bold text-white/25 uppercase tracking-widest mb-2">co_changed_with</div>
+                            <ul className="text-xs text-white/60 space-y-1 max-h-28 overflow-y-auto custom-scrollbar font-mono">
+                              {(Array.isArray(activeNode?.co_changed_with) && activeNode.co_changed_with.length > 0)
+                                ? activeNode.co_changed_with.map((rel: string) => (
+                                    <li key={rel} className="truncate" title={rel}>{rel.split('/').pop() || rel}</li>
+                                  ))
+                                : <li className="text-white/35">No co-change signal in sampled history</li>}
+                            </ul>
+                          </div>
+                        </section>
+
                       <section>
                         <div className="flex items-center justify-between mb-4">
-                          <div className="text-[10px] font-bold tracking-[0.2em] text-white/30 uppercase">Impact Velocity</div>
-                          <div className="text-[10px] font-bold text-accent uppercase tracking-widest">Trained Risk</div>
+                          <div className="text-[10px] font-bold tracking-[0.2em] text-white/30 uppercase">Impact spread</div>
+                          <div className="text-[10px] font-bold text-white/40 uppercase tracking-widest">
+                            PageRank · {impactSpread.band}
+                          </div>
                         </div>
                         <div className="bg-white/5 p-6 rounded-2xl border border-white/5 relative overflow-hidden">
-                          <div className="flex items-end justify-between mb-3">
-                              <span className="text-sm font-bold text-white/80 tracking-tight">System Ripple Factor</span>
-                              <span className="text-xs font-bold text-accent">{ripplePercent}%</span>
+                          <div className="flex items-end justify-between mb-2 gap-3">
+                            <span className="text-sm font-bold text-white/80 tracking-tight">Graph influence</span>
+                            <span className="text-xs font-bold text-accent tabular-nums shrink-0">{impactSpread.percent}%</span>
                           </div>
+                          <p className="text-[11px] text-white/45 leading-snug mb-4">{impactSpread.caption}</p>
                           <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden">
-                              <motion.div 
-                                initial={{ width: 0 }}
-                                animate={{ width: `${ripplePercent}%` }}
-                                transition={{ delay: 0.5, duration: 1 }}
-                                className="h-full bg-gradient-to-r from-accent to-indigo-400 shadow-[0_0_20px_rgba(99,102,241,0.5)]"
-                              />
+                            <motion.div
+                              initial={{ width: 0 }}
+                              animate={{ width: `${impactSpread.percent}%` }}
+                              transition={{ delay: 0.5, duration: 1 }}
+                              className={`h-full ${impactSpreadBarClass(impactSpread.band)}`}
+                            />
                           </div>
                         </div>
                       </section>
@@ -375,7 +526,7 @@ export default function MainExplorer() {
                       </div>
                       <div className="mt-6 flex items-center justify-between p-4 bg-white/5 border border-white/5 rounded-xl">
                          <span className="text-[10px] text-white/30 font-bold uppercase tracking-widest">Language</span>
-                         <span className="text-xs font-bold text-accent px-2 py-1 bg-accent/10 rounded-lg uppercase">{activeNode?.label.split('.').pop() || 'UNKNOWN'}</span>
+                         <span className="text-xs font-bold text-accent px-2 py-1 bg-accent/10 rounded-lg uppercase">{(activeNode?.language || activeNode?.label.split('.').pop() || 'UNKNOWN').toString()}</span>
                       </div>
                     </motion.div>
                   )}

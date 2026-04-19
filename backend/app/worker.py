@@ -29,13 +29,18 @@ celery_app = Celery(
     backend=settings.REDIS_URL
 )
 
+# Celery's default prefork pool is not supported on Windows.
+# If we don't force a Windows-safe pool, tasks will error before executing.
+_is_windows = os.name == "nt"
+
 celery_app.conf.update(
     task_serializer="json",
     accept_content=["json"],
     result_serializer="json",
     timezone="UTC",
     enable_utc=True,
-    worker_concurrency=2, # Keep it lightweight for local development
+    worker_concurrency=1 if _is_windows else 2,  # Keep it lightweight for local development
+    worker_pool="solo" if _is_windows else None,
 )
 
 @celery_app.task(bind=True, name="analyze_repository")
