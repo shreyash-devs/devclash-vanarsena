@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Link2, Sparkles, Zap, Shield, GitBranch, History, TrendingUp, ChevronRight, Terminal, ArrowLeft, ArrowRight, Code2, FolderOpen, Cpu } from 'lucide-react';
+import { Zap, Shield, Terminal, ArrowLeft, ArrowRight, Cpu } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import Plasma from '../components/Visualization/Plasma';
 
@@ -9,7 +9,6 @@ export default function RepoOnboarding() {
   const navigate = useNavigate();
   const { setRepoUrl } = useStore();
   const [inputUrl, setInputUrl] = useState('');
-  const [branch, setBranch] = useState('main');
 
   const handleStartAnalysis = () => {
     if (!inputUrl.trim()) return;

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Folder, FileCode2, ChevronRight, Search, Sparkles, FolderOpen, ArrowUpRight, PenLine, Terminal } from 'lucide-react';
+import { Folder, FileCode2, ChevronRight, Search, Sparkles, FolderOpen, ArrowUpRight, Terminal } from 'lucide-react';
 import IDELayout from '../components/IDE/IDELayout';
 import { useStore } from '../store/useStore';
 import ArchitectureGraph3D from '../components/Visualization/ArchitectureGraph3D';
@@ -10,7 +10,6 @@ import {
   evaluateCouplingTier,
   evaluateImpactSpread,
   impactSpreadBarClass,
-  totalCouplingEdges,
 } from '../lib/explorerNodeVitals';
 
 const initialNodes3D: any[] = [];
@@ -301,6 +300,16 @@ export default function MainExplorer() {
   const couplingTier = evaluateCouplingTier(fanIn, fanOut);
   const impactSpread = evaluateImpactSpread(activeNode?.impact_score);
 
+  const inboundNeighbors = edges
+    .filter(e => e.target === selectedNodeId && e.type !== 'contains')
+    .map(e => nodes.find(n => n.id === e.source))
+    .filter(Boolean);
+
+  const outboundNeighbors = edges
+    .filter(e => e.source === selectedNodeId && e.type !== 'contains')
+    .map(e => nodes.find(n => n.id === e.target))
+    .filter(Boolean);
+
   const formatLastTouched = (iso?: string) => {
     if (!iso) return '—';
     try {
@@ -418,9 +427,51 @@ export default function MainExplorer() {
                         <div className="p-6 bg-white/5 border border-white/10 rounded-2xl relative group overflow-hidden">
                           <div className="absolute top-0 left-0 w-1 h-full bg-accent shadow-[0_0_15px_#6366f1]" />
                           <p className="text-white/70 italic text-sm leading-relaxed max-h-48 overflow-y-auto no-scrollbar">
-                            {activeNode?.type === 'dir'
-                              ? `Directory “${activeNode.path || activeNode.label}” — folder metrics below aggregate every analyzed file under this path (see 3D contains edges).`
-                              : `"${activeNode?.summary || 'File structure identified. Awaiting complete neural analysis parsing...'}"`}
+                            {(() => {
+                              if (!activeNode) return '';
+                              if (activeNode.type === 'dir') {
+                                return `Directory "${activeNode.path || activeNode.label}" — folder metrics below aggregate every analyzed file under this path (see 3D contains edges).`;
+                              }
+                              if (activeNode.summary) {
+                                return `"${activeNode.summary}"`;
+                              }
+                              
+                              const lang = activeNode.language || 'Code';
+                              const role = (activeNode.role || 'utility').toLowerCase();
+                              let auto = `This ${lang} file operates as a ${role} module within the architecture. `;
+                              
+                              const cCount = coerceCount(activeNode.class_count);
+                              const fCount = coerceCount(activeNode.function_count);
+                              const eCount = coerceCount(activeNode.export_count);
+                              if (cCount > 0 || fCount > 0) {
+                                auto += `It defines ${cCount} classes and ${fCount} functions`;
+                                auto += eCount > 0 ? `, exposing ${eCount} public exports. ` : `. `;
+                              }
+                              
+                              const inDeg = coerceCount(activeNode.in_degree);
+                              const outDeg = coerceCount(activeNode.out_degree);
+                              if (inDeg > 3 && outDeg > 3) {
+                                auto += `It acts as a highly coupled transit hub (${inDeg} dependents, ${outDeg} dependencies). `;
+                              } else if (inDeg > 3) {
+                                auto += `It serves as a core dependency for ${inDeg} other modules. `;
+                              } else if (outDeg > 3) {
+                                auto += `It relies heavily on ${outDeg} internal systemic modules. `;
+                              }
+                              
+                              const extDeps = activeNode.external_deps || [];
+                              if (extDeps.length > 0) {
+                                auto += `It integrates with ${extDeps.length} external boundaries (e.g. ${extDeps.slice(0, 2).join(', ')}). `;
+                              }
+                              
+                              if (activeNode.circular_dep) {
+                                auto += `⚠️ Analysis indicates it is involved in a circular dependency loop. `;
+                              }
+                              if (coerceCount(activeNode.change_frequency) >= 5) {
+                                auto += `Git history highlights frequent churn, suggesting high volatility. `;
+                              }
+                              
+                              return `"${auto.trim()}"`;
+                            })()}
                           </p>
                         </div>
                       </section>
@@ -525,6 +576,48 @@ export default function MainExplorer() {
                                   ))
                                 : <li className="text-white/35">No co-change signal in sampled history</li>}
                             </ul>
+                          </div>
+
+                          <div>
+                            <div className="text-[8px] font-bold text-white/25 uppercase tracking-widest mb-2">Internal Symbols (Definitions)</div>
+                            <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto no-scrollbar">
+                              {(Array.isArray(activeNode?.symbols) && activeNode.symbols.length > 0)
+                                ? activeNode.symbols.map((s: string) => (
+                                    <span key={s} className="text-[9px] px-2 py-0.5 rounded-lg bg-accent/5 text-accent/70 border border-accent/20 font-mono">
+                                      {s}
+                                    </span>
+                                  ))
+                                : <span className="text-xs text-white/35">No symbols extracted (Empty file or aggregate)</span>}
+                            </div>
+                          </div>
+
+                          <div className="border-t border-white/5 pt-6 mt-2 grid grid-cols-2 gap-6">
+                            <div>
+                                <div className="text-[8px] font-bold text-white/25 uppercase tracking-widest mb-3 flex items-center gap-2">
+                                  <div className="w-1 h-1 rounded-full bg-emerald-500" />
+                                  Dependents (Inbound)
+                                </div>
+                                <ul className="text-[10px] text-white/50 space-y-2 max-h-40 overflow-y-auto no-scrollbar font-mono">
+                                  {inboundNeighbors.length > 0 ? inboundNeighbors.map(nb => (
+                                    <li key={nb.id} className="truncate px-2 py-1 rounded bg-white/[0.03] border border-white/5 hover:text-white transition-colors cursor-help" title={nb.id}>
+                                      {nb.label || nb.id.split('/').pop()}
+                                    </li>
+                                  )) : <li className="italic opacity-30">No inbound links</li>}
+                                </ul>
+                            </div>
+                            <div>
+                                <div className="text-[8px] font-bold text-white/25 uppercase tracking-widest mb-3 flex items-center gap-2">
+                                  <div className="w-1 h-1 rounded-full bg-indigo-500" />
+                                  Dependencies (Outbound)
+                                </div>
+                                <ul className="text-[10px] text-white/50 space-y-2 max-h-40 overflow-y-auto no-scrollbar font-mono">
+                                  {outboundNeighbors.length > 0 ? outboundNeighbors.map(nb => (
+                                    <li key={nb.id} className="truncate px-2 py-1 rounded bg-white/[0.03] border border-white/5 hover:text-white transition-colors cursor-help" title={nb.id}>
+                                      {nb.label || nb.id.split('/').pop()}
+                                    </li>
+                                  )) : <li className="italic opacity-30">No outbound links</li>}
+                                </ul>
+                            </div>
                           </div>
                         </section>
 
@@ -644,14 +737,6 @@ export default function MainExplorer() {
                 </AnimatePresence>
               </div>
 
-              {activeInfoTab !== 'chat' && (
-                <div className="p-8 mt-auto shrink-0 bg-white/5 border-t border-white/5 relative z-10">
-                  <button className="w-full flex items-center justify-center gap-3 py-4 bg-accent text-white rounded-2xl font-bold text-sm hover:translate-y-[-2px] active:translate-y-[0px] transition-all shadow-[0_10px_30px_rgba(99,102,241,0.3)] hover:shadow-[0_15px_40px_rgba(99,102,241,0.5)] group">
-                    <PenLine size={18} className="group-hover:rotate-12 transition-transform" />
-                    Initiate AI Refactor
-                  </button>
-                </div>
-              )}
             </motion.div>
           )}
         </AnimatePresence>

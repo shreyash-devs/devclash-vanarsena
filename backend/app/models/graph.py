@@ -38,6 +38,7 @@ class GraphNode(BaseModel):
     circular_dep: Optional[bool] = False
     external_deps: Optional[list[str]] = None
     co_changed_with: Optional[list[str]] = None
+    symbols: Optional[list[str]] = None
 
 class GraphEdge(BaseModel):
     id: str
