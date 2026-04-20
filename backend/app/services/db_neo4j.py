@@ -610,6 +610,7 @@ class Neo4jService:
                 "circular_dep": circ,
                 "external_deps": list(raw.get("external_deps") or []),
                 "co_changed_with": list(raw.get("co_changed_with") or []),
+                "symbols": list(raw.get("symbols") or []),
             }
 
         async with driver.session() as session:
@@ -622,7 +623,7 @@ class Neo4jService:
                 r_rel = record["r"]
                 ingest_file_node(dict(m) if m else None)
 
-                if r_rel and n and m:
+                if r_rel is not None and n is not None and m is not None:
                     n_id = n.get("id")
                     m_id = m.get("id")
                     rel_type = (r_rel.type or "IMPORTS").lower()
@@ -692,11 +693,31 @@ class Neo4jService:
             path_to_parsed = {f.path: parsed for f, parsed in parsed_files}
             valid_paths = set(path_to_parsed.keys())
 
-            def resolve_target_path(import_value: str):
+            def resolve_target_path(import_value: str, source_path: str):
                 imp_clean = import_value.strip().strip('"\' ')
-                normalized_imp = imp_clean.replace(".", "/")
+                
+                # Support common alias patterns
+                if imp_clean.startswith("@/"):
+                    imp_clean = imp_clean.replace("@/", "src/")
+                
+                # 1. Handle explicit relative imports (./ or ../)
+                if imp_clean.startswith("."):
+                    import os
+                    try:
+                        dir_name = os.path.dirname(source_path)
+                        joined = os.path.join(dir_name, imp_clean)
+                        # Normalize to forward slashes for matching against valid_paths
+                        resolved_rel = os.path.normpath(joined).replace("\\", "/")
+                        
+                        # Check exact or extension-agnostic match
+                        for vp in valid_paths:
+                            if vp == resolved_rel or vp.rsplit(".", 1)[0] == resolved_rel:
+                                return vp
+                    except Exception:
+                        pass
 
-                # Strategy 1: strict exact match (ignoring extensions)
+                # 2. Strategy: strict exact match (ignoring extensions)
+                normalized_imp = imp_clean.replace(".", "/")
                 target = next(
                     (
                         p for p in valid_paths
@@ -707,12 +728,12 @@ class Neo4jService:
                 if target:
                     return target
 
-                # Strategy 2: suffix/path contains match
+                # 3. Strategy: suffix/path contains match
                 target = next((p for p in valid_paths if imp_clean in p or normalized_imp in p), None)
                 if target:
                     return target
 
-                # Strategy 3: Java/Kotlin class name fallback
+                # 4. Strategy: Java/Kotlin class name fallback
                 if "." in imp_clean:
                     class_name = imp_clean.split(".")[-1]
                     target = next(
@@ -722,7 +743,7 @@ class Neo4jService:
                     if target:
                         return target
 
-                # Strategy 4: filename component match
+                # 5. Strategy: filename component match
                 last = imp_clean.split("/")[-1].split(".")[-1]
                 if last:
                     target = next((p for p in valid_paths if last in p.split("/")[-1]), None)
@@ -734,7 +755,7 @@ class Neo4jService:
             dependency_edges = set()
             for f, parsed in parsed_files:
                 for imp_val, _imp_type in parsed.imports:
-                    target_path = resolve_target_path(imp_val)
+                    target_path = resolve_target_path(imp_val, f.path)
                     if target_path and target_path != f.path:
                         dependency_edges.add((f.path, target_path))
 
@@ -746,11 +767,11 @@ class Neo4jService:
                         class_first_path[simple] = path
 
             def resolve_via_binding(
-                symbol: str, bindings: list[tuple[str, str]]
+                symbol: str, bindings: list[tuple[str, str]], source_path: str
             ) -> str | None:
                 for local, mod in bindings:
                     if local == symbol:
-                        return resolve_target_path(mod)
+                        return resolve_target_path(mod, source_path)
                 return None
 
             def resolve_extend_ref(
@@ -761,14 +782,14 @@ class Neo4jService:
                 ref = base_str.strip()
                 if not ref:
                     return None
-                t = resolve_target_path(ref)
+                t = resolve_target_path(ref, source_path)
                 if t and t != source_path:
                     return t
-                t = resolve_via_binding(ref, bindings)
+                t = resolve_via_binding(ref, bindings, source_path)
                 if t and t != source_path:
                     return t
                 head, _, tail = ref.partition(".")
-                t = resolve_via_binding(head, bindings)
+                t = resolve_via_binding(head, bindings, source_path)
                 if t and t != source_path:
                     return t
                 simple = (tail or ref).split("<")[0].strip()
@@ -776,7 +797,7 @@ class Neo4jService:
                     p = class_first_path[simple]
                     if p != source_path:
                         return p
-                t = resolve_via_binding(simple, bindings)
+                t = resolve_via_binding(simple, bindings, source_path)
                 if t and t != source_path:
                     return t
                 return None
@@ -790,7 +811,7 @@ class Neo4jService:
                 r = root.strip()
                 if not r or r in local_defs:
                     return None
-                t = resolve_via_binding(r, bindings)
+                t = resolve_via_binding(r, bindings, source_path)
                 if t and t != source_path:
                     return t
                 if r[:1].isupper() and r in class_first_path:
@@ -871,7 +892,8 @@ class Neo4jService:
                 change_frequency: data.change_frequency,
                 circular_dep: data.circular_dep,
                 external_deps: data.external_deps,
-                co_changed_with: data.co_changed_with
+                co_changed_with: data.co_changed_with,
+                symbols: data.symbols
             })
             """
             
@@ -945,6 +967,7 @@ class Neo4jService:
                     "circular_dep": circular_file,
                     "external_deps": ext_pkgs,
                     "co_changed_with": co_changed_with,
+                    "symbols": ([fn[0] for fn in parsed.functions] + [cn[0] for cn in parsed.classes])[:50],
                 })
             
             logger.info("neo4j_writing_nodes", repo_id=repo_id, count=len(node_batch))
