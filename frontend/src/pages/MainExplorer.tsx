@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Folder, FileCode2, ChevronRight, Search, Sparkles, FolderOpen, ArrowUpRight, Terminal } from 'lucide-react';
 import IDELayout from '../components/IDE/IDELayout';
@@ -38,11 +38,32 @@ function metricAccent(metricId: string, numericValue: number): IntelAccent {
   return 'neutral';
 }
 
-const FileItem = ({ file, selectedId, onSelect }: { file: any, selectedId: string | null, onSelect: (id: string | null) => void }) => (
+interface FileTreeNode {
+  id: string;
+  name: string;
+  type: 'file' | 'dir';
+  path: string;
+  children: FileTreeNode[];
+  role?: string;
+  color?: string;
+}
+
+const FileItem = ({ 
+  file, 
+  selectedId, 
+  onSelect,
+  depth = 0 
+}: { 
+  file: any, 
+  selectedId: string | null, 
+  onSelect: (id: string | null) => void,
+  depth?: number
+}) => (
   <div 
-    className={`flex items-center justify-between px-6 py-2.5 cursor-pointer group transition-all duration-300 relative
+    className={`flex items-center justify-between py-2.5 cursor-pointer group transition-all duration-300 relative
       ${selectedId === file.id ? 'bg-white/10' : 'hover:bg-white/5'}
     `}
+    style={{ paddingLeft: `${(depth + 1.5) * 1.5}rem`, paddingRight: '1.5rem' }}
     onClick={() => onSelect(file.id)}
   >
     {selectedId === file.id && (
@@ -54,7 +75,7 @@ const FileItem = ({ file, selectedId, onSelect }: { file: any, selectedId: strin
     <div className="flex items-center text-white/50 group-hover:text-white transition-colors relative z-10">
       <FileCode2 size={18} className={`mr-3 transition-all ${selectedId === file.id ? 'text-accent scale-110' : 'opacity-40'}`} />
       <span className={`truncate max-w-[130px] font-medium tracking-tight ${selectedId === file.id ? 'text-white font-bold' : ''}`}>
-        {file.name.split('/').pop()}
+        {file.name}
       </span>
     </div>
     <span className={`text-[8px] font-black px-2 py-0.5 rounded-[5px] border uppercase tracking-widest opacity-60 group-hover:opacity-100 transition-opacity
@@ -66,6 +87,80 @@ const FileItem = ({ file, selectedId, onSelect }: { file: any, selectedId: strin
     </span>
   </div>
 );
+
+const FolderItem = ({ 
+  folder, 
+  expandedFolders, 
+  toggleFolder, 
+  selectedId, 
+  onSelect,
+  depth = 0
+}: { 
+  folder: FileTreeNode, 
+  expandedFolders: string[], 
+  toggleFolder: (path: string) => void, 
+  selectedId: string | null, 
+  onSelect: (id: string | null) => void,
+  depth?: number
+}) => {
+  const isExpanded = expandedFolders.includes(folder.path);
+  
+  return (
+    <div className="flex flex-col">
+      <div 
+        className={`flex items-center py-2.5 hover:bg-white/5 cursor-pointer transition-all group
+          ${isExpanded ? 'text-white' : 'text-white/40'}
+        `}
+        style={{ paddingLeft: `${(depth + 1.5) * 1.5}rem`, paddingRight: '1.5rem' }}
+        onClick={() => toggleFolder(folder.path)}
+      >
+        <motion.div
+          animate={{ rotate: isExpanded ? 90 : 0 }}
+          transition={{ duration: 0.2 }}
+        >
+          <ChevronRight size={14} className="mr-3 opacity-30 group-hover:opacity-100" />
+        </motion.div>
+        <Folder size={18} className={`mr-3 transition-opacity ${isExpanded ? 'opacity-80' : 'opacity-30'}`} />
+        <span className="font-bold text-[13px] tracking-tight">{folder.name}</span>
+      </div>
+
+      <AnimatePresence initial={false}>
+        {isExpanded && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="overflow-hidden"
+          >
+            {folder.children
+              .sort((a, b) => (a.type === b.type ? a.name.localeCompare(b.name) : a.type === 'dir' ? -1 : 1))
+              .map(child => (
+                child.type === 'dir' ? (
+                  <FolderItem 
+                    key={child.id} 
+                    folder={child} 
+                    expandedFolders={expandedFolders} 
+                    toggleFolder={toggleFolder} 
+                    selectedId={selectedId} 
+                    onSelect={onSelect}
+                    depth={depth + 1}
+                  />
+                ) : (
+                  <FileItem 
+                    key={child.id} 
+                    file={child} 
+                    selectedId={selectedId} 
+                    onSelect={onSelect}
+                    depth={depth + 1}
+                  />
+                )
+              ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
 
 export default function MainExplorer() {
   const { selectedNodeId, setSelectedNodeId, repoId } = useStore();
@@ -172,32 +267,58 @@ export default function MainExplorer() {
     );
   };
 
-  // Filter nodes for the sidebar
-  const displayedNodes = nodes.filter(node => 
-    (node.id || '').toLowerCase().includes(fileSearch.toLowerCase()) || 
-    (node.label || '').toLowerCase().includes(fileSearch.toLowerCase())
-  );
+  // Dynamically build the file tree
+  const fileTree = useMemo(() => {
+    const rootNodes: FileTreeNode[] = [];
+    
+    // Filter nodes by search query
+    const filteredNodes = nodes.filter(node => 
+      node.type !== 'dir' && (
+        (node.id || '').toLowerCase().includes(fileSearch.toLowerCase()) || 
+        (node.label || '').toLowerCase().includes(fileSearch.toLowerCase())
+      )
+    );
 
-  // Dynamically group files
-  const filesByFolder: Record<string, any[]> = { 'root': [] };
-  displayedNodes.forEach(node => {
-     if (node.type === 'dir') return;
-     const relativePath = (node.path || (node.id.includes(':') ? node.id.split(':').slice(1).join(':') : node.id)) as string;
-     const parts = relativePath.split('/');
-     const folderName = parts.length > 1 ? parts[0] : 'root';
-     if (!filesByFolder[folderName]) filesByFolder[folderName] = [];
-     filesByFolder[folderName].push({
-        id: node.id,
-        name: relativePath,
-        role: node.role,
-        color: node.role === 'Entry' ? 'indigo' : node.role === 'Core' ? 'blue' : 'gray'
-     });
-  });
-
-  const rootFiles = filesByFolder['root'] || [];
-  const subFolders = Object.keys(filesByFolder).filter(k => k !== 'root').map(k => ({
-     id: k, name: k, files: filesByFolder[k]
-  }));
+    filteredNodes.forEach(node => {
+      const relativePath = (node.path || (node.id.includes(':') ? node.id.split(':').slice(1).join(':') : node.id)) as string;
+      const parts = relativePath.split('/');
+      
+      let currentLevel = rootNodes;
+      let currentPath = '';
+      
+      parts.forEach((part, index) => {
+        const isFile = index === parts.length - 1;
+        currentPath = currentPath ? `${currentPath}/${part}` : part;
+        
+        if (isFile) {
+          currentLevel.push({
+            id: node.id,
+            name: part,
+            type: 'file',
+            path: relativePath,
+            children: [],
+            role: node.role,
+            color: node.role === 'Entry' ? 'indigo' : node.role === 'Core' ? 'blue' : 'gray'
+          });
+        } else {
+          let dirNode = currentLevel.find(c => c.type === 'dir' && c.name === part);
+          if (!dirNode) {
+            dirNode = {
+              id: `dir:${currentPath}`,
+              name: part,
+              type: 'dir',
+              path: currentPath,
+              children: []
+            };
+            currentLevel.push(dirNode);
+          }
+          currentLevel = dirNode.children;
+        }
+      });
+    });
+    
+    return rootNodes;
+  }, [nodes, fileSearch]);
 
   const topbarCenter = null;
 
@@ -244,46 +365,29 @@ export default function MainExplorer() {
             exit={{ height: 0, opacity: 0 }}
             className="overflow-hidden"
           >
-            {/* Direct Files under root */}
-            {rootFiles.map((file) => (
-               <FileItem key={file.id} file={file} selectedId={selectedNodeId} onSelect={setSelectedNodeId} />
-            ))}
-
-            {/* Sub-Folders */}
-            {subFolders.map((folder) => (
-              <div key={folder.id} className="flex flex-col">
-                <div 
-                  className={`flex items-center px-6 py-2.5 hover:bg-white/5 cursor-pointer transition-all pl-10 group
-                    ${expandedFolders.includes(folder.id) ? 'text-white' : 'text-white/40'}
-                  `}
-                  onClick={() => toggleFolder(folder.id)}
-                >
-                  <motion.div
-                    animate={{ rotate: expandedFolders.includes(folder.id) ? 90 : 0 }}
-                    transition={{ duration: 0.2 }}
-                  >
-                    <ChevronRight size={14} className="mr-3 opacity-30 group-hover:opacity-100" />
-                  </motion.div>
-                  <Folder size={18} className={`mr-3 transition-opacity ${expandedFolders.includes(folder.id) ? 'opacity-80' : 'opacity-30'}`} />
-                  <span className="font-bold text-[13px] tracking-tight">{folder.name}</span>
-                </div>
-
-                <AnimatePresence>
-                  {expandedFolders.includes(folder.id) && (
-                    <motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: 'auto', opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      className="overflow-hidden pl-6 border-l border-white/5 ml-12"
-                    >
-                      {folder.files.map(file => (
-                        <FileItem key={file.id} file={file} selectedId={selectedNodeId} onSelect={setSelectedNodeId} />
-                      ))}
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-            ))}
+            {fileTree
+              .sort((a, b) => (a.type === b.type ? a.name.localeCompare(b.name) : a.type === 'dir' ? -1 : 1))
+              .map(child => (
+                child.type === 'dir' ? (
+                  <FolderItem 
+                    key={child.id} 
+                    folder={child} 
+                    expandedFolders={expandedFolders} 
+                    toggleFolder={toggleFolder} 
+                    selectedId={selectedNodeId} 
+                    onSelect={setSelectedNodeId}
+                    depth={0}
+                  />
+                ) : (
+                  <FileItem 
+                    key={child.id} 
+                    file={child} 
+                    selectedId={selectedNodeId} 
+                    onSelect={setSelectedNodeId}
+                    depth={0}
+                  />
+                )
+              ))}
           </motion.div>
         )}
       </AnimatePresence>
