@@ -73,41 +73,56 @@ class GitHubService:
 
     async def get_files(self, repo_path: Path, settings: Settings) -> list[FileInfo]:
         """
-        Walks the repository directory tree adhering to strict constraints:
-        - Must be in SUPPORTED_EXTENSIONS
-        - Must skip node_modules/venv/.git/__pycache__
-        - Must skip files larger than MAX_FILE_SIZE_KB
-        - Capped at MAX_FILES_PER_REPO logic
+        Walks the repository directory tree.
+        - Skips core infrastructure dirs (.git, node_modules, etc.)
+        - Skips files larger than MAX_FILE_SIZE_KB
+        - Captures ALL other files to ensure complete repo visualization
         """
-        ignore_dirs = {".git", "node_modules", "venv", ".venv", "__pycache__", "dist", "build"}
+        ignore_dirs = {".git", "node_modules", "venv", ".venv", "__pycache__", "dist", "build", ".cache"}
         
         def walk_files():
             files_found = []
             for filepath in repo_path.rglob("*"):
                 if filepath.is_file():
-                    parts = filepath.parts
-                    if any(ig in parts for ig in ignore_dirs):
-                        continue
-                        
-                    ext = filepath.suffix.lower()
-                    if ext not in settings.SUPPORTED_EXTENSIONS:
+                    # Calculate parts relative to the repo_path to avoid ignoring the root .cache dir
+                    try:
+                        relative_path = filepath.relative_to(repo_path)
+                        rel_parts = relative_path.parts
+                        if any(ig in rel_parts for ig in ignore_dirs):
+                            continue
+                    except Exception:
                         continue
                         
                     size_kb = filepath.stat().st_size / 1024
                     if size_kb > settings.MAX_FILE_SIZE_KB:
                         continue
+                    
+                    ext = filepath.suffix.lower()
+                    content = ""
+                    
+                    # Only attempt to read text for reasonable extensions
+                    text_extensions = {
+                        ".py", ".ts", ".tsx", ".js", ".jsx", ".c", ".cpp", ".h", ".hpp",
+                        ".go", ".java", ".rs", ".rb", ".php", ".cs", ".kt", ".swift",
+                        ".html", ".css", ".scss", ".json", ".md", ".txt", ".yml", ".yaml", 
+                        ".xml", ".sh", ".sql", ".bat", ".ps1", ".env", ".gitignore", "dockerfile"
+                    }
+                    
+                    if ext in text_extensions or not ext:
+                        try:
+                            content = filepath.read_text(encoding="utf-8")
+                        except Exception:
+                            content = "[Binary or Non-UTF8 Content]"
+                    else:
+                        content = f"[Non-code asset: {ext}]"
                         
-                    try:
-                        content = filepath.read_text(encoding="utf-8")
-                        files_found.append({
-                            "path": str(filepath.relative_to(repo_path)).replace("\\", "/"),
-                            "abs_path": filepath,
-                            "ext": ext,
-                            "size_kb": size_kb,
-                            "content": content
-                        })
-                    except Exception:
-                        continue
+                    files_found.append({
+                        "path": str(filepath.relative_to(repo_path)).replace("\\", "/"),
+                        "abs_path": filepath,
+                        "ext": ext,
+                        "size_kb": size_kb,
+                        "content": content
+                    })
             return files_found
             
         all_files = await asyncio.to_thread(walk_files)
