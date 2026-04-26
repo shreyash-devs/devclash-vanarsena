@@ -110,5 +110,15 @@ Important: Never commit real API keys, secrets, mnemonics, or production credent
 - ask node-contextual AI questions for faster code comprehension
 
 ---
+## Demo Video 🎥
+<video
+  src="assets/WhatsApp%20Video%202026-04-19%20at%2012.28.57%20PM.mp4"
+  controls
+  width="100%"
+>
+  Your browser does not support the video tag.
+</video>
+
+---
 ## 👨‍💻 Author
-Shreyash Dubewar
+Made with ❤️ by Vanar Sena.
