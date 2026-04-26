@@ -112,14 +112,16 @@ Important: Never commit real API keys, secrets, mnemonics, or production credent
 ---
 ## Demo Video 🎥
 <video
-  src="assets/project-demo.mp4"
+  src="https://raw.githubusercontent.com/shreyash-devs/devclash-vanarsena/main/assets/project-demo.mp4"
   controls
+  playsinline
+  preload="metadata"
   width="100%"
 >
   Your browser does not support inline video playback.
 </video>
 
-[Open or download the demo video](assets/project-demo.mp4)
+👉 [Open or download the demo video](https://raw.githubusercontent.com/shreyash-devs/devclash-vanarsena/main/assets/project-demo.mp4)
 
 ---
 ## 👨‍💻 Author
