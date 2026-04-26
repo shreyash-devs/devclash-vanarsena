@@ -111,17 +111,11 @@ Important: Never commit real API keys, secrets, mnemonics, or production credent
 
 ---
 ## Demo Video 🎥
-<video
-  src="https://raw.githubusercontent.com/shreyash-devs/devclash-vanarsena/main/assets/project-demo.mp4"
-  controls
-  playsinline
-  preload="metadata"
-  width="100%"
->
-  Your browser does not support inline video playback.
-</video>
+GitHub README does not reliably support inline MP4 playback in all views.
 
-👉 [Open or download the demo video](https://raw.githubusercontent.com/shreyash-devs/devclash-vanarsena/main/assets/project-demo.mp4)
+👉 **[Watch Demo Video in GitHub Player](https://github.com/shreyash-devs/devclash-vanarsena/blob/main/assets/project-demo.mp4)**
+
+👉 [Direct download (MP4)](https://raw.githubusercontent.com/shreyash-devs/devclash-vanarsena/main/assets/project-demo.mp4)
 
 ---
 ## 👨‍💻 Author
