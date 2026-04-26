@@ -112,12 +112,14 @@ Important: Never commit real API keys, secrets, mnemonics, or production credent
 ---
 ## Demo Video 🎥
 <video
-  src="assets/WhatsApp%20Video%202026-04-19%20at%2012.28.57%20PM.mp4"
+  src="assets/project-demo.mp4"
   controls
   width="100%"
 >
-  Your browser does not support the video tag.
+  Your browser does not support inline video playback.
 </video>
+
+[Open or download the demo video](assets/project-demo.mp4)
 
 ---
 ## 👨‍💻 Author
