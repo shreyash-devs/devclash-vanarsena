@@ -93,29 +93,25 @@ flowchart TD
 ```
 
 ---
-## Environment Configuration
-Use local environment setup before running:
 
-- configure backend `.env` from `backend/.env.example`
-- start required services: Redis, PostgreSQL, and Neo4j
-- provide AI/runtime keys and hosts (Groq API key, Ollama host list)
-Important: Never commit real API keys, secrets, mnemonics, or production credentials.
-
----
 ## Key Features
-- analyze public repositories with asynchronous job tracking
-- visualize architecture in interactive 3D and structured explorer views
-- inspect dependency edges, code roles, and file-level intelligence
-- monitor pipeline progress from ingest to graph completion
-- ask node-contextual AI questions for faster code comprehension
+- **Smart Repository Analysis:** Analyze any public repository with an asynchronous, production-style job pipeline.
+- **Immersive Architecture Visualization:** Explore code relationships through interactive 3D and structured graph views.
+- **Deep Dependency Intelligence:** Inspect edges, file roles, and contextual metadata for faster technical understanding.
+- **Live Pipeline Tracking:** Follow analysis progress from repository ingest to graph completion in real time.
+- **Context-Aware AI Assistance:** Ask node-level questions and get focused insights for quicker onboarding.
 
 ---
 ## Demo Video 🎥
-GitHub README does not reliably support inline MP4 playback in all views.
+GitHub README does not support fully interactive embedded YouTube players.  
+Use the link below to open the demo in YouTube with full playback controls.
 
-👉 **[Watch Demo Video in GitHub Player](https://github.com/shreyash-devs/devclash-vanarsena/blob/main/assets/project-demo.mp4)**
+### UI Showcase (Click to Watch Demo)
+[![RepoSensei UI Screenshot 1](assets/Screenshot%20(128).png)](https://youtu.be/QCqJbYiYElo)
 
-👉 [Direct download (MP4)](https://raw.githubusercontent.com/shreyash-devs/devclash-vanarsena/main/assets/project-demo.mp4)
+[![RepoSensei UI Screenshot 2](assets/Screenshot%20(129).png)](https://youtu.be/QCqJbYiYElo)
+
+👉 **[Watch Demo Video on YouTube](https://youtu.be/QCqJbYiYElo)**
 
 ---
 ## 👨‍💻 Author
