@@ -1,10 +1,11 @@
 import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Grid, Box, Folder, FileCode2, ChevronRight, Search, Sparkles, FolderOpen, ArrowUpRight, Terminal, ShieldAlert } from 'lucide-react';
+import { Grid, Box, Folder, FileCode2, ChevronRight, Search, Sparkles, FolderOpen, ArrowUpRight, Terminal, ShieldAlert, Activity } from 'lucide-react';
 import IDELayout from '../components/IDE/IDELayout';
 import { useStore } from '../store/useStore';
 import ArchitectureGraph3D from '../components/Visualization/ArchitectureGraph3D';
 import ArchitectureGraph2D from '../components/Visualization/ArchitectureGraph2D';
+import ArchitectureScorecard from '../components/Visualization/ArchitectureScorecard';
 import { API_BASE } from '../lib/api';
 import {
   coerceCount,
@@ -167,7 +168,7 @@ const FolderItem = ({
 };
 
 export default function MainExplorer() {
-  const { selectedNodeId, setSelectedNodeId, repoId, isThreatMapMode, toggleThreatMapMode } = useStore();
+  const { selectedNodeId, setSelectedNodeId, repoId, isThreatMapMode, toggleThreatMapMode, isScorecardOpen, toggleScorecard } = useStore();
   const [nodes, setNodes] = useState<any[]>(initialNodes3D);
   const [edges, setEdges] = useState<any[]>(initialEdges3D);
   const [loadError, setLoadError] = useState(false);
@@ -349,6 +350,19 @@ export default function MainExplorer() {
       >
         <ShieldAlert size={14} className={isThreatMapMode ? 'animate-pulse' : ''} />
         Threat Map
+      </button>
+
+      <button 
+        onClick={toggleScorecard}
+        className={`px-3 py-1.5 rounded-lg transition-all flex items-center gap-2 text-[9px] font-black uppercase tracking-widest border
+          ${isScorecardOpen 
+            ? 'bg-accent/20 text-accent border-accent/50 shadow-[0_0_15px_rgba(99,102,241,0.3)]' 
+            : 'bg-white/5 text-white/40 border-white/10 hover:text-white hover:bg-white/10'}
+        `}
+        title="View Repository Scorecard"
+      >
+        <Activity size={14} />
+        Scorecard
       </button>
 
       <div className="flex items-center gap-1 bg-white/5 border border-white/5 p-0.5 rounded-lg">
@@ -560,6 +574,12 @@ export default function MainExplorer() {
             />
           )}
         </div>
+
+        <ArchitectureScorecard 
+          isOpen={isScorecardOpen}
+          onClose={toggleScorecard}
+          metrics={{ nodes, edges }}
+        />
 
         <AnimatePresence>
           {selectedNodeId && (
