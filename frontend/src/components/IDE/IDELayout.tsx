@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react';
-import { Files, Search, GitBranch, Blocks, Settings, Terminal } from 'lucide-react';
+import { Files, Terminal } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import InteractiveBackground from '../Visualization/InteractiveBackground';

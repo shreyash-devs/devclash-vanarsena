@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Grid, Box, Folder, FileCode2, ChevronRight, Search, Sparkles, FolderOpen, ArrowUpRight, Terminal } from 'lucide-react';
+import { Grid, Box, Folder, FileCode2, ChevronRight, Search, Sparkles, FolderOpen, ArrowUpRight, Terminal, ShieldAlert } from 'lucide-react';
 import IDELayout from '../components/IDE/IDELayout';
 import { useStore } from '../store/useStore';
 import ArchitectureGraph3D from '../components/Visualization/ArchitectureGraph3D';
@@ -167,7 +167,7 @@ const FolderItem = ({
 };
 
 export default function MainExplorer() {
-  const { selectedNodeId, setSelectedNodeId, repoId } = useStore();
+  const { selectedNodeId, setSelectedNodeId, repoId, isThreatMapMode, toggleThreatMapMode } = useStore();
   const [nodes, setNodes] = useState<any[]>(initialNodes3D);
   const [edges, setEdges] = useState<any[]>(initialEdges3D);
   const [loadError, setLoadError] = useState(false);
@@ -337,25 +337,40 @@ export default function MainExplorer() {
   );
 
   const topbarRight = (
-    <div className="flex items-center gap-1 bg-white/5 border border-white/5 p-0.5 rounded-lg">
+    <div className="flex items-center gap-2">
       <button 
-        onClick={() => setViewMode('2d')}
-        className={`px-3 py-1 rounded-md transition-all flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest
-          ${viewMode === '2d' ? 'bg-accent text-white shadow-[0_0_10px_rgba(99,102,241,0.4)]' : 'text-white/40 hover:text-white hover:bg-white/5'}
+        onClick={toggleThreatMapMode}
+        className={`px-3 py-1.5 rounded-lg transition-all flex items-center gap-2 text-[9px] font-black uppercase tracking-widest border
+          ${isThreatMapMode 
+            ? 'bg-red-500/20 text-red-500 border-red-500/50 shadow-[0_0_15px_rgba(239,68,68,0.3)]' 
+            : 'bg-white/5 text-white/40 border-white/10 hover:text-white hover:bg-white/10'}
         `}
+        title="Toggle Anti-Pattern Threat Map"
       >
-        <Grid size={12} />
-        2D
+        <ShieldAlert size={14} className={isThreatMapMode ? 'animate-pulse' : ''} />
+        Threat Map
       </button>
-      <button 
-        onClick={() => setViewMode('3d')}
-        className={`px-3 py-1 rounded-md transition-all flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest
-          ${viewMode === '3d' ? 'bg-accent text-white shadow-[0_0_10px_rgba(99,102,241,0.4)]' : 'text-white/40 hover:text-white hover:bg-white/5'}
-        `}
-      >
-        <Box size={12} />
-        3D
-      </button>
+
+      <div className="flex items-center gap-1 bg-white/5 border border-white/5 p-0.5 rounded-lg">
+        <button 
+          onClick={() => setViewMode('2d')}
+          className={`px-3 py-1 rounded-md transition-all flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest
+            ${viewMode === '2d' ? 'bg-accent text-white shadow-[0_0_10px_rgba(99,102,241,0.4)]' : 'text-white/40 hover:text-white hover:bg-white/5'}
+          `}
+        >
+          <Grid size={12} />
+          2D
+        </button>
+        <button 
+          onClick={() => setViewMode('3d')}
+          className={`px-3 py-1 rounded-md transition-all flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest
+            ${viewMode === '3d' ? 'bg-accent text-white shadow-[0_0_10px_rgba(99,102,241,0.4)]' : 'text-white/40 hover:text-white hover:bg-white/5'}
+          `}
+        >
+          <Box size={12} />
+          3D
+        </button>
+      </div>
     </div>
   );
 
@@ -438,7 +453,7 @@ export default function MainExplorer() {
     const found = nodes.find(n => n.id === selectedNodeId);
     const isDirId = selectedNodeId?.includes(':__dir__:');
     
-    if (!found && isDirId) {
+    if (!found && selectedNodeId && isDirId) {
       const path = selectedNodeId.split(':__dir__:')[1] || '';
       const isRoot = path === '';
       
@@ -533,6 +548,7 @@ export default function MainExplorer() {
               edges={edges} 
               selectedId={selectedNodeId} 
               onSelect={setSelectedNodeId} 
+              isThreatMapMode={isThreatMapMode}
             />
           ) : (
             <ArchitectureGraph2D 
@@ -540,6 +556,7 @@ export default function MainExplorer() {
               edges={edges} 
               selectedId={selectedNodeId} 
               onSelect={setSelectedNodeId} 
+              isThreatMapMode={isThreatMapMode}
             />
           )}
         </div>
