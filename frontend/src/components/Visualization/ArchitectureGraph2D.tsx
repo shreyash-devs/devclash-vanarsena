@@ -23,6 +23,8 @@ interface NodeData {
   type?: 'file' | 'dir';
   color?: string;
   summary?: string;
+  in_degree?: number;
+  out_degree?: number;
 }
 
 interface EdgeData {
@@ -31,35 +33,40 @@ interface EdgeData {
   target: string;
   type?: string;
 }
-
 // Enhanced "Big Box" Node Design
 const CustomNode = ({ data, selected }: { data: any, selected: boolean }) => {
   const isDir = data.type === 'dir';
-  
+  const coupling = (data.in_degree || 0) + (data.out_degree || 0);
+  const isGodFile = !isDir && coupling >= 50;
+  const isDeadCode = !isDir && coupling === 0;
+  const isThreatMapMode = data.isThreatMapMode;
+
   return (
     <motion.div 
       animate={{ 
         scale: selected ? 1.05 : 1,
         transition: { type: 'spring', stiffness: 300, damping: 20 }
       }}
-      className={`relative group ${selected ? 'z-50' : 'z-10'}`}
+      className={`relative group ${selected ? 'z-50' : 'z-10'} ${isThreatMapMode && isDeadCode ? 'opacity-20' : 'opacity-100'}`}
     >
       <div className={`
         relative px-5 py-4 rounded-xl border backdrop-blur-2xl transition-all duration-300
-        ${selected 
-          ? 'bg-accent/20 border-accent shadow-[0_0_30px_rgba(99,102,241,0.5)]' 
-          : 'bg-[#0f111a]/95 border-white/10 hover:border-white/30 shadow-xl'}
+        ${isThreatMapMode && isGodFile 
+          ? 'bg-red-950/20 border-red-500 shadow-[0_0_30px_rgba(239,68,68,0.5)] animate-pulse' 
+          : selected 
+            ? 'bg-accent/20 border-accent shadow-[0_0_30px_rgba(99,102,241,0.5)]' 
+            : 'bg-[#0f111a]/95 border-white/10 hover:border-white/30 shadow-xl'}
       `}
       style={{ 
         width: '240px',
         minHeight: '80px'
       }}>
         
-        <Handle type="target" position={Position.Top} className="!bg-accent !w-2 !h-2 !border-none !-top-1" />
+        <Handle type="target" position={Position.Top} className={`!w-2 !h-2 !border-none !-top-1 ${isThreatMapMode && isGodFile ? '!bg-red-500' : '!bg-accent'}`} />
         
         <div className="flex flex-col gap-2">
           <div className="flex items-start gap-3">
-            <div className={`p-2.5 rounded-lg ${isDir ? 'bg-amber-500/20 text-amber-500' : 'bg-accent/20 text-accent'}`}>
+            <div className={`p-2.5 rounded-lg ${isThreatMapMode && isGodFile ? 'bg-red-500/20 text-red-500' : isDir ? 'bg-amber-500/20 text-amber-500' : 'bg-accent/20 text-accent'}`}>
               {isDir ? <FolderOpen size={18} /> : <FileCode2 size={18} />}
             </div>
             <div className="flex flex-col overflow-hidden pt-0.5">
@@ -67,11 +74,14 @@ const CustomNode = ({ data, selected }: { data: any, selected: boolean }) => {
                 {data.label}
               </span>
               <div className="flex items-center gap-2">
-                <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wide ${isDir ? 'bg-amber-500/10 text-amber-500' : 'bg-accent/10 text-accent'}`}>
-                    {isDir ? 'Package' : data.role || 'Module'}
+                <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wide 
+                  ${isThreatMapMode && isGodFile ? 'bg-red-500/10 text-red-500' : isDir ? 'bg-amber-500/10 text-amber-500' : 'bg-accent/10 text-accent'}`}>
+                    {isThreatMapMode && isGodFile ? 'God File' : isDir ? 'Package' : data.role || 'Module'}
                 </span>
-                {selected && (
-                    <span className="text-[9px] text-accent font-semibold animate-pulse">Focused</span>
+                {(selected || (isThreatMapMode && isGodFile)) && (
+                    <span className={`text-[9px] font-semibold animate-pulse ${isThreatMapMode && isGodFile ? 'text-red-500' : 'text-accent'}`}>
+                      {isThreatMapMode && isGodFile ? 'CRITICAL THREAT' : 'Focused'}
+                    </span>
                 )}
               </div>
             </div>
@@ -93,11 +103,11 @@ const CustomNode = ({ data, selected }: { data: any, selected: boolean }) => {
           </AnimatePresence>
         </div>
 
-        <Handle type="source" position={Position.Bottom} className="!bg-accent !w-2 !h-2 !border-none !-bottom-1" />
+        <Handle type="source" position={Position.Bottom} className={`!w-2 !h-2 !border-none !-bottom-1 ${isThreatMapMode && isGodFile ? '!bg-red-500' : '!bg-accent'}`} />
         
         {/* Glow behind the box */}
-        {selected && (
-          <div className="absolute inset-0 rounded-xl -z-10 animate-pulse bg-accent/20 blur-2xl" />
+        {(selected || (isThreatMapMode && isGodFile)) && (
+          <div className={`absolute inset-0 rounded-xl -z-10 animate-pulse blur-2xl ${isThreatMapMode && isGodFile ? 'bg-red-500/30' : 'bg-accent/20'}`} />
         )}
       </div>
     </motion.div>
@@ -151,12 +161,14 @@ export default function ArchitectureGraph2D({
   nodes, 
   edges, 
   selectedId, 
-  onSelect 
+  onSelect,
+  isThreatMapMode
 }: { 
   nodes: NodeData[]; 
   edges: EdgeData[];
   selectedId: string | null;
   onSelect: (id: string | null) => void;
+  isThreatMapMode?: boolean;
 }) {
 
   const [rfNodes, setNodes] = useNodesState([]);
@@ -196,7 +208,10 @@ export default function ArchitectureGraph2D({
           role: n.role, 
           type: n.type,
           color: n.color,
-          summary: n.summary
+          summary: n.summary,
+          in_degree: n.in_degree,
+          out_degree: n.out_degree,
+          isThreatMapMode
         },
         selected: isFocused,
         style: { 
@@ -234,7 +249,7 @@ export default function ArchitectureGraph2D({
     setNodes(layoutedNodes);
     setEdges(layoutedEdges);
 
-  }, [nodes, edges, selectedId, setNodes, setEdges]);
+  }, [nodes, edges, selectedId, setNodes, setEdges, isThreatMapMode]);
 
   if (!selectedId) {
     return (

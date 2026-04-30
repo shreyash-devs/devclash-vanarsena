@@ -11,9 +11,10 @@ interface NodeData {
   summary?: string;
   type?: 'file' | 'dir';
   path?: string;
-  /** Analysis-driven hex from backend (risk / structure / stable palette). */
-  color?: string;
   intel_signal?: 'risk' | 'structure' | 'stable';
+  in_degree?: number;
+  out_degree?: number;
+  color?: string;
 }
 
 interface EdgeData {
@@ -96,13 +97,37 @@ function Particles() {
 }
 
 // File node — glass cube; directory — compact slate marker (tree branch)
-const Node = ({ data, isSelected, onClick }: { data: NodeData; isSelected: boolean; onClick: () => void }) => {
+const Node = ({ data, isSelected, onClick, isThreatMapMode }: { data: NodeData; isSelected: boolean; onClick: () => void; isThreatMapMode?: boolean }) => {
   const [hovered, setHovered] = useState(false);
+  const [pulse, setPulse] = useState(0);
+
+  useFrame((state) => {
+    if (isThreatMapMode) {
+      setPulse(Math.sin(state.clock.getElapsedTime() * 4) * 0.5 + 0.5);
+    }
+  });
+
   const isDir = data.type === 'dir';
-  const color = resolveBlockColor(data);
+  const coupling = (data.in_degree || 0) + (data.out_degree || 0);
+  const isGodFile = !isDir && coupling >= 50;
+  const isDeadCode = !isDir && coupling === 0;
+
+  const baseColor = resolveBlockColor(data);
+  const color = isThreatMapMode 
+    ? (isGodFile ? '#ff0000' : isDeadCode ? '#444444' : baseColor)
+    : baseColor;
+
   const boxArgs = isDir ? ([0.35, 0.22, 0.35] as [number, number, number]) : ([0.6, 0.6, 0.6] as [number, number, number]);
   const labelSize = isDir ? 0.08 : 0.12;
   const labelY = isDir ? 0.38 : 0.6;
+
+  const emissiveIntensity = isThreatMapMode && isGodFile 
+    ? 2 + pulse * 4 
+    : (hovered || isSelected ? (isDir ? 0.35 : 1.5) : (isDir ? 0.08 : 0.2));
+
+  const opacity = isThreatMapMode && isDeadCode 
+    ? 0.15 
+    : (isDir ? 0.92 : 0.8);
 
   const inner = (
     <group position={data.position} onClick={(e) => { e.stopPropagation(); onClick(); }}>
@@ -114,12 +139,11 @@ const Node = ({ data, isSelected, onClick }: { data: NodeData; isSelected: boole
           transmission={isDir ? 0.15 : 0.6}
           thickness={1}
           transparent
-          opacity={isDir ? 0.92 : 0.8}
+          opacity={opacity}
           emissive={color}
-          emissiveIntensity={hovered || isSelected ? (isDir ? 0.35 : 1.5) : (isDir ? 0.08 : 0.2)}
+          emissiveIntensity={emissiveIntensity}
         />
       </RoundedBox>
-
       {!isDir && (
         <RoundedBox args={[0.62, 0.62, 0.62]} radius={0.05} smoothness={4}>
           <meshBasicMaterial
@@ -205,7 +229,7 @@ const Connection = ({
     return e.clone().sub(s).normalize();
   }, [start, end]);
 
-  const targetPoint = useMemo(() => new THREE.Vector3(...end), [end]);
+
   const arrowPos = useMemo(() => {
     const s = new THREE.Vector3(...start);
     const e = new THREE.Vector3(...end);
@@ -261,7 +285,7 @@ const Connection = ({
   );
 };
 
-function Scene({ nodes, edges, selectedId, onSelect }: { nodes: NodeData[]; edges: EdgeData[]; selectedId: string | null; onSelect: (id: string | null) => void }) {
+function Scene({ nodes, edges, selectedId, onSelect, isThreatMapMode }: { nodes: NodeData[]; edges: EdgeData[]; selectedId: string | null; onSelect: (id: string | null) => void; isThreatMapMode?: boolean }) {
   const { camera, controls } = useThree() as any;
   const groupRef = useRef<THREE.Group>(null);
   
@@ -292,8 +316,8 @@ function Scene({ nodes, edges, selectedId, onSelect }: { nodes: NodeData[]; edge
       <OrbitControls makeDefault enableDamping dampingFactor={0.05} minDistance={1.5} maxDistance={72} />
       
       <ambientLight intensity={0.1} />
-      <pointLight position={[10, 10, 10]} intensity={2} />
-      <pointLight position={[-10, -5, -5]} intensity={1.5} color="#6366f1" />
+      <pointLight position={[10, 10, 10]} intensity={isThreatMapMode ? 0.5 : 2} />
+      <pointLight position={[-10, -5, -5]} intensity={1.5} color={isThreatMapMode ? "#ff0000" : "#6366f1"} />
       
       <group ref={groupRef}>
         <Particles />
@@ -303,11 +327,11 @@ function Scene({ nodes, edges, selectedId, onSelect }: { nodes: NodeData[]; edge
           if (!startNode || !endNode) return null;
           
           const isConnectedToSelected = selectedId === edge.source || selectedId === edge.target;
-          const isDimmed = !!selectedId && !isConnectedToSelected;
+          const isDimmed = isThreatMapMode ? true : (!!selectedId && !isConnectedToSelected);
           const isActive = !!selectedId && isConnectedToSelected;
 
           const edgeKind = (edge.type || 'imports').toLowerCase();
-          const lineColor = edgeTypeColors[edgeKind] ?? colors[startNode.role.toLowerCase() as keyof typeof colors] ?? colors.util;
+          const lineColor = isThreatMapMode ? "#444" : (edgeTypeColors[edgeKind] ?? colors[startNode.role.toLowerCase() as keyof typeof colors] ?? colors.util);
           
           return (
             <Connection 
@@ -328,15 +352,16 @@ function Scene({ nodes, edges, selectedId, onSelect }: { nodes: NodeData[]; edge
             data={node} 
             isSelected={selectedId === node.id}
             onClick={() => onSelect(node.id)} 
+            isThreatMapMode={isThreatMapMode}
           />
         ))}
       </group>
 
       <EffectComposer>
         <Bloom 
-          luminanceThreshold={1} 
+          luminanceThreshold={isThreatMapMode ? 0.5 : 1} 
           mipmapBlur 
-          intensity={1.2} 
+          intensity={isThreatMapMode ? 2.5 : 1.2} 
           radius={0.4}
         />
       </EffectComposer>
@@ -351,18 +376,20 @@ export default function ArchitectureGraph3D({
   nodes, 
   edges, 
   selectedId, 
-  onSelect 
+  onSelect,
+  isThreatMapMode
 }: { 
   nodes: NodeData[]; 
   edges: EdgeData[];
   selectedId: string | null;
   onSelect: (id: string | null) => void;
+  isThreatMapMode?: boolean;
 }) {
   return (
     <div className="w-full h-full bg-[#010103]">
       <Canvas shadows dpr={[1, 2]}>
         <Stars radius={100} depth={50} count={5000} factor={4} saturation={0} fade speed={1} />
-        <Scene nodes={nodes} edges={edges} selectedId={selectedId} onSelect={onSelect} />
+        <Scene nodes={nodes} edges={edges} selectedId={selectedId} onSelect={onSelect} isThreatMapMode={isThreatMapMode} />
       </Canvas>
     </div>
   );

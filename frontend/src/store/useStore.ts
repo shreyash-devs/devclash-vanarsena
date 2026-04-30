@@ -58,6 +58,10 @@ interface AppState {
   setSelectedNodeId: (id: string | null) => void;
   searchQuery: string;
   setSearchQuery: (query: string) => void;
+
+  // Threat Map state
+  isThreatMapMode: boolean;
+  toggleThreatMapMode: () => void;
 }
 
 export const useStore = create<AppState>((set, get) => ({
@@ -71,10 +75,12 @@ export const useStore = create<AppState>((set, get) => ({
   analysisError: null,
   selectedNodeId: null,
   searchQuery: '',
+  isThreatMapMode: false,
 
   setRepoUrl: (url) => set({ repoUrl: url }),
   setSelectedNodeId: (id) => set({ selectedNodeId: id }),
   setSearchQuery: (query) => set({ searchQuery: query }),
+  toggleThreatMapMode: () => set((state) => ({ isThreatMapMode: !state.isThreatMapMode })),
   abortProcess: () => set({ analysisStage: 0, analysisProgress: 0, nodeCount: 0, edgeCount: 0, jobId: null, repoId: null, analysisError: null }),
 
   startAnalysis: async (url: string) => {
