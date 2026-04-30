@@ -1,12 +1,10 @@
-import { useMemo, useEffect } from 'react';
+import { useEffect } from 'react';
 import ReactFlow, { 
   Background, 
   Controls, 
-  MiniMap,
   MarkerType,
   Handle,
   Position,
-  Panel,
   useNodesState,
   useEdgesState,
   type Node,
@@ -15,7 +13,7 @@ import ReactFlow, {
 import dagre from '@dagrejs/dagre';
 import 'reactflow/dist/style.css';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FileCode2, FolderOpen, MousePointer2, ZoomIn, Info, Share2, Component } from 'lucide-react';
+import { FileCode2, FolderOpen, MousePointer2 } from 'lucide-react';
 
 interface NodeData {
   id: string;
@@ -37,7 +35,6 @@ interface EdgeData {
 // Enhanced "Big Box" Node Design
 const CustomNode = ({ data, selected }: { data: any, selected: boolean }) => {
   const isDir = data.type === 'dir';
-  const color = data.color || '#6366f1';
   
   return (
     <motion.div 
@@ -162,8 +159,8 @@ export default function ArchitectureGraph2D({
   onSelect: (id: string | null) => void;
 }) {
 
-  const [rfNodes, setNodes, onNodesChange] = useNodesState([]);
-  const [rfEdges, setEdges, onEdgesChange] = useEdgesState([]);
+  const [rfNodes, setNodes] = useNodesState([]);
+  const [rfEdges, setEdges] = useEdgesState([]);
 
   useEffect(() => {
     if (!selectedId) {
