@@ -79,7 +79,7 @@ export default function IDELayout({ children, topbarCenter, topbarRight, sidebar
               animate={{ x: 0, opacity: 1 }}
               exit={{ x: -340, opacity: 0 }}
               transition={{ duration: 0.4, ease: [0.23, 1, 0.32, 1] }}
-              className="absolute top-4 left-16 bottom-4 w-[320px] bg-indigo-950/20 backdrop-blur-3xl border border-indigo-500/20 rounded-[32px] flex flex-col shrink-0 z-30 shadow-[0_20px_50px_rgba(0,0,0,0.6)] overflow-hidden"
+              className="absolute top-16 left-16 bottom-4 w-[320px] bg-indigo-950/20 backdrop-blur-3xl border border-indigo-500/20 rounded-[32px] flex flex-col shrink-0 z-30 shadow-[0_20px_50px_rgba(0,0,0,0.6)] overflow-hidden"
             >
                {/* Nebula Sheen Overlay */}
                <div className="absolute inset-0 bg-gradient-to-br from-accent/5 via-transparent to-transparent pointer-events-none" />
