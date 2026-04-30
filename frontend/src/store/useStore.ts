@@ -62,6 +62,10 @@ interface AppState {
   // Threat Map state
   isThreatMapMode: boolean;
   toggleThreatMapMode: () => void;
+
+  // Scorecard state
+  isScorecardOpen: boolean;
+  toggleScorecard: () => void;
 }
 
 export const useStore = create<AppState>((set, get) => ({
@@ -76,11 +80,13 @@ export const useStore = create<AppState>((set, get) => ({
   selectedNodeId: null,
   searchQuery: '',
   isThreatMapMode: false,
+  isScorecardOpen: false,
 
   setRepoUrl: (url) => set({ repoUrl: url }),
   setSelectedNodeId: (id) => set({ selectedNodeId: id }),
   setSearchQuery: (query) => set({ searchQuery: query }),
   toggleThreatMapMode: () => set((state) => ({ isThreatMapMode: !state.isThreatMapMode })),
+  toggleScorecard: () => set((state) => ({ isScorecardOpen: !state.isScorecardOpen })),
   abortProcess: () => set({ analysisStage: 0, analysisProgress: 0, nodeCount: 0, edgeCount: 0, jobId: null, repoId: null, analysisError: null }),
 
   startAnalysis: async (url: string) => {

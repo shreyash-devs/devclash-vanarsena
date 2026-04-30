@@ -25,13 +25,13 @@ export default function IDELayout({ children, topbarCenter, topbarRight, sidebar
       <InteractiveBackground />
       
       {/* Top Bar */}
-      <div className="h-12 border-b border-white/5 bg-black/40 backdrop-blur-xl flex items-center justify-between px-4 shrink-0 z-20">
+      <div className="h-12 border-b border-white/5 bg-black/40 backdrop-blur-xl flex items-center justify-between px-4 shrink-0 z-20 relative">
         <Link to="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
           <Terminal size={18} className="text-accent" />
           <span className="font-sans font-bold tracking-tight text-sm text-white/90">RepoSensei</span>
         </Link>
         
-        <div className="flex-1 flex justify-center">
+        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex justify-center pointer-events-none">
           {topbarCenter}
         </div>
 
