@@ -281,21 +281,12 @@ export default function ArchitectureGraph2D({
       >
         <Background color="#1a1a1a" gap={30} size={1.5} />
         
-        <Panel position="top-left" className="m-6">
-            <div className="flex flex-col gap-2">
-                <h2 className="text-xl font-black text-white/90 tracking-tighter flex items-center gap-2">
-                    <Component size={24} className="text-accent" />
-                    DEPENDENCY VIEW
-                </h2>
-                <p className="text-[10px] text-white/40 uppercase tracking-[0.2em] font-bold">
-                    Focused Ego Graph
-                </p>
-            </div>
-        </Panel>
+
 
         <Controls 
+            position="bottom-center"
             showInteractive={false} 
-            className="!bg-[#0f111a]/90 !border-white/10 !rounded-xl !p-1 !shadow-2xl" 
+            className="!bg-[#0f111a]/90 !border-white/10 !rounded-xl !p-1 !shadow-2xl !flex !flex-row !mb-10 !gap-1" 
         />
       </ReactFlow>
 
@@ -304,20 +295,25 @@ export default function ArchitectureGraph2D({
         .react-flow__edge-path { stroke-dasharray: 6; stroke-dashoffset: 12; animation: dash 1.5s linear infinite; }
         @keyframes dash { from { stroke-dashoffset: 100; } to { stroke-dashoffset: 0; } }
         
-        /* Fix the white controls block */
         .react-flow__controls {
           background-color: transparent !important;
           box-shadow: none !important;
           border: none !important;
+          display: flex !important;
+          flex-direction: row !important;
+          gap: 4px !important;
         }
         .react-flow__controls-button { 
           background-color: #0f111a !important; 
-          border-bottom: 1px solid rgba(255,255,255,0.05) !important; 
+          border: 1px solid rgba(255,255,255,0.05) !important; 
           color: white !important; 
           fill: white !important; 
           display: flex !important;
           justify-content: center !important;
           align-items: center !important;
+          border-radius: 8px !important;
+          width: 32px !important;
+          height: 32px !important;
         }
         .react-flow__controls-button:hover { 
           background-color: rgba(255,255,255,0.1) !important; 

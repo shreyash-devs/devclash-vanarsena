@@ -110,10 +110,13 @@ const FolderItem = ({
     <div className="flex flex-col">
       <div 
         className={`flex items-center py-2.5 hover:bg-white/5 cursor-pointer transition-all group
-          ${isExpanded ? 'text-white' : 'text-white/40'}
+          ${selectedId === folder.id ? 'bg-white/10 text-accent shadow-[inset_4px_0_0_0_#6366f1]' : isExpanded ? 'text-white' : 'text-white/40'}
         `}
         style={{ paddingLeft: `${(depth + 1.5) * 1.5}rem`, paddingRight: '1.5rem' }}
-        onClick={() => toggleFolder(folder.path)}
+        onClick={() => {
+          toggleFolder(folder.path);
+          onSelect(folder.id);
+        }}
       >
         <motion.div
           animate={{ rotate: isExpanded ? 90 : 0 }}
@@ -306,7 +309,7 @@ export default function MainExplorer() {
           let dirNode = currentLevel.find(c => c.type === 'dir' && c.name === part);
           if (!dirNode) {
             dirNode = {
-              id: `dir:${currentPath}`,
+              id: `${repoId}:__dir__:${currentPath}`,
               name: part,
               type: 'dir',
               path: currentPath,
@@ -322,9 +325,39 @@ export default function MainExplorer() {
     return rootNodes;
   }, [nodes, fileSearch]);
 
-  const topbarCenter = null;
+  const topbarCenter = (
+    <div className="flex flex-col items-center">
+      <span className="text-[10px] font-black text-accent tracking-[0.2em] uppercase whitespace-nowrap">
+        {viewMode === '2d' ? 'Dependency View' : '3D Explorer'}
+      </span>
+      <span className="text-[8px] text-white/30 uppercase tracking-[0.1em] font-bold whitespace-nowrap">
+        {viewMode === '2d' ? 'Focused Ego Graph' : 'Universal Topology'}
+      </span>
+    </div>
+  );
 
-  const topbarRight = null;
+  const topbarRight = (
+    <div className="flex items-center gap-1 bg-white/5 border border-white/5 p-0.5 rounded-lg">
+      <button 
+        onClick={() => setViewMode('2d')}
+        className={`px-3 py-1 rounded-md transition-all flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest
+          ${viewMode === '2d' ? 'bg-accent text-white shadow-[0_0_10px_rgba(99,102,241,0.4)]' : 'text-white/40 hover:text-white hover:bg-white/5'}
+        `}
+      >
+        <Grid size={12} />
+        2D
+      </button>
+      <button 
+        onClick={() => setViewMode('3d')}
+        className={`px-3 py-1 rounded-md transition-all flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest
+          ${viewMode === '3d' ? 'bg-accent text-white shadow-[0_0_10px_rgba(99,102,241,0.4)]' : 'text-white/40 hover:text-white hover:bg-white/5'}
+        `}
+      >
+        <Box size={12} />
+        3D
+      </button>
+    </div>
+  );
 
   const sidebarContent = (
     <div className="flex flex-col font-sans text-[14px] select-none bg-transparent h-full">
@@ -344,10 +377,14 @@ export default function MainExplorer() {
 
       <div className="flex-1 overflow-y-auto no-scrollbar py-2">
 
-      {/* Root Folder */}
       <div 
-        className="flex items-center px-6 py-3 hover:bg-white/5 cursor-pointer text-white group transition-all"
-        onClick={() => toggleFolder('root')}
+        className={`flex items-center px-6 py-3 hover:bg-white/5 cursor-pointer group transition-all
+          ${selectedNodeId === `${repoId}:__dir__:` ? 'bg-white/10 text-accent shadow-[inset_4px_0_0_0_#6366f1]' : 'text-white'}
+        `}
+        onClick={() => {
+          toggleFolder('root');
+          setSelectedNodeId(`${repoId}:__dir__:`);
+        }}
       >
         <motion.div
           animate={{ rotate: expandedFolders.includes('root') ? 90 : 0 }}
@@ -356,7 +393,7 @@ export default function MainExplorer() {
           <ChevronRight size={14} className="mr-3 opacity-40 group-hover:opacity-100" />
         </motion.div>
         <FolderOpen size={18} className="text-accent mr-3 shadow-[0_0_15px_rgba(99,102,241,0.4)]" />
-        <span className="font-bold tracking-tight text-[15px]">RepoSensei</span>
+        <span className="font-bold tracking-tight text-[15px]">{repoId || 'RepoSensei'}</span>
       </div>
 
       <AnimatePresence initial={false}>
@@ -397,7 +434,41 @@ export default function MainExplorer() {
     </div>
   );
 
-  const activeNode = nodes.find(n => n.id === selectedNodeId);
+  const activeNode = useMemo(() => {
+    const found = nodes.find(n => n.id === selectedNodeId);
+    const isDirId = selectedNodeId?.includes(':__dir__:');
+    
+    if (!found && isDirId) {
+      const path = selectedNodeId.split(':__dir__:')[1] || '';
+      const isRoot = path === '';
+      
+      // Aggregate metrics for all files within this directory
+      const childrenNodes = nodes.filter(n => 
+        n.type !== 'dir' && (isRoot || n.path?.startsWith(path))
+      );
+      
+      const aggregate = childrenNodes.reduce((acc, curr) => ({
+        class_count: acc.class_count + (curr.class_count || 0),
+        function_count: acc.function_count + (curr.function_count || 0),
+        export_count: acc.export_count + (curr.export_count || 0),
+        in_degree: acc.in_degree + (curr.in_degree || 0),
+        out_degree: acc.out_degree + (curr.out_degree || 0),
+      }), { class_count: 0, function_count: 0, export_count: 0, in_degree: 0, out_degree: 0 });
+
+      return {
+        id: selectedNodeId,
+        label: isRoot ? repoId || 'Main Repository' : path.split('/').pop() || path,
+        type: 'dir',
+        path: isRoot ? '' : path,
+        role: 'Package',
+        summary: isRoot 
+          ? `Root repository: ${repoId}. This node represents the top-level container for all source modules and subdirectories.` 
+          : `Directory: ${path}. This package organizes ${childrenNodes.length} modules and sub-packages.`,
+        ...aggregate
+      };
+    }
+    return found;
+  }, [nodes, selectedNodeId, repoId]);
   const fanIn = coerceCount(activeNode?.in_degree);
   const fanOut = coerceCount(activeNode?.out_degree);
   const couplingCount = fanIn + fanOut;
@@ -442,27 +513,6 @@ export default function MainExplorer() {
   return (
     <IDELayout topbarCenter={topbarCenter} topbarRight={topbarRight} sidebarContent={sidebarContent}>
       <div className="w-full h-full relative overflow-hidden bg-[#020204]">
-        {/* View Mode Toggle */}
-        <div className="absolute top-6 right-6 z-30 flex items-center gap-1 bg-black/40 backdrop-blur-md border border-white/10 p-1 rounded-xl shadow-2xl">
-          <button 
-            onClick={() => setViewMode('2d')}
-            className={`p-2 rounded-lg transition-all flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest
-              ${viewMode === '2d' ? 'bg-accent text-white shadow-[0_0_15px_rgba(99,102,241,0.5)]' : 'text-white/40 hover:text-white hover:bg-white/5'}
-            `}
-          >
-            <Grid size={14} />
-            2D
-          </button>
-          <button 
-            onClick={() => setViewMode('3d')}
-            className={`p-2 rounded-lg transition-all flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest
-              ${viewMode === '3d' ? 'bg-accent text-white shadow-[0_0_15px_rgba(99,102,241,0.5)]' : 'text-white/40 hover:text-white hover:bg-white/5'}
-            `}
-          >
-            <Box size={14} />
-            3D
-          </button>
-        </div>
         {isLoading && nodes.length === 0 && (
           <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20 px-4 py-2 rounded-xl border border-indigo-500/30 bg-indigo-950/60 text-indigo-300 text-sm flex items-center gap-2">
             <div className="w-2 h-2 rounded-full bg-indigo-400 animate-ping" />
@@ -501,7 +551,7 @@ export default function MainExplorer() {
               animate={{ x: 0, opacity: 1 }}
               exit={{ x: '100%', opacity: 0 }}
               transition={{ duration: 0.5, ease: [0.23, 1, 0.32, 1] }}
-              className="absolute top-4 right-4 bottom-4 w-[400px] bg-indigo-950/20 backdrop-blur-3xl border border-indigo-500/20 rounded-[32px] shadow-[0_20px_50px_rgba(0,0,0,0.6)] flex flex-col font-sans z-30 overflow-hidden"
+              className="absolute top-8 right-8 bottom-8 w-[400px] bg-indigo-950/20 backdrop-blur-3xl border border-indigo-500/20 rounded-[32px] shadow-[0_20px_50px_rgba(0,0,0,0.6)] flex flex-col font-sans z-30 overflow-hidden"
             >
               {/* Nebula Sheen Overlay */}
               <div className="absolute inset-0 bg-gradient-to-br from-accent/5 via-transparent to-transparent pointer-events-none" />
